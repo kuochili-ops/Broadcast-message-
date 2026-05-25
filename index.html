@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 高清不變形大字劇院版</title>
+    <title>訊息傳遞 APP - 所見即所得純淨大字版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -197,17 +197,17 @@
 
     <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 16:9 標準比例高清錄影中，請勿關閉網頁...</div>
+        <div id="recording-badge">🔴 所見即所得錄影中（完美捕捉當前預視畫面比例）...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
-            <label for="message-input">多行訊息輸入（超大字體、極緩速度、修復錄影變形版）：</label>
+            <label for="message-input">多行訊息輸入（超大字體、漫步慢速、所見即所得錄影版）：</label>
             <textarea id="message-input" placeholder="請輸入訊息...">巨型霓虹字體
-慢步調 悠閒滑行
-標準比例 高清錄製
-絕不變形 唯美呈現</textarea>
+漫步悠閒滑行
+所見即所得錄製
+完美保留預視比例</textarea>
         </div>
 
         <div class="settings-row">
@@ -216,7 +216,7 @@
                 <input type="color" id="text-color" value="#00ffcc">
             </div>
             <div class="setting-item">
-                <label for="speed-input">字距慢速(ms)：</label>
+                <label for="speed-input">出字慢速(ms)：</label>
                 <input type="number" id="speed-input" value="900" min="100" max="3000" step="50" style="width: 75px;">
             </div>
             <div class="setting-item">
@@ -233,7 +233,7 @@
         </div>
     </div>
 
-    <script>
+    <script {willReadFrequently: true}>
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const stageContainer = document.getElementById('stage-container');
@@ -246,12 +246,6 @@
         const shareBtn = document.getElementById('share-btn');
         const uiBtn = document.getElementById('ui-btn');
         const recordingBadge = document.getElementById('recording-badge');
-
-        // 用於錄影的標準 16:9 隱藏畫布
-        const recordCanvas = document.createElement('canvas');
-        const recordCtx = recordCanvas.getContext('2d', { willReadFrequently: true });
-        const RECORD_WIDTH = 1280;  // 錄製標準高清寬
-        const RECORD_HEIGHT = 720; // 錄製標準高清高
 
         let particles = [];
         let textLines = [];
@@ -266,7 +260,10 @@
         let mediaRecorder = null;
         let recordedChunks = [];
 
+        // 完美的「真實視窗比例物理參數」更新
         function resizeCanvas() {
+            // 使用實體 CSS 解析度，並在錄影時確保不重設寬高導致中斷
+            if (isRecording) return; 
             canvas.width = stageContainer.clientWidth * window.devicePixelRatio;
             canvas.height = stageContainer.clientHeight * window.devicePixelRatio;
             ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
@@ -311,8 +308,7 @@
         function spawnToken(text) {
             speakerPulses.push({ r: 32, opacity: 0.8 });
 
-            // 為了確保物理軌跡在錄影時也是 16:9，全部物理計算改用相對比例 (%)
-            // 隨機遠離左上角的終點位置百分比
+            // 物理運動目標終點（依據編輯狀態下實際預視的寬高百分比計算，徹底防變形）
             const destXPct = -(1.2 + Math.random() * 0.4);
             const destYPct = -(1.1 + Math.random() * 0.4);
             const destRotate = (Math.random() * 20 - 10) * Math.PI / 180;
@@ -322,7 +318,7 @@
                 rotateDeg: destRotate,
                 scale: 0.5,
                 opacity: 0,
-                life: 8500, // 調慢移動後，生命週期同步延長至 8.5 秒
+                life: 9000, // 速度調慢，生命週期同步延長至 9 秒，確保優雅淡出
                 startColor: textColorInput.value,
                 birthTime: globalTimer,
                 destXPct: destXPct,
@@ -354,106 +350,16 @@
             return rgbToHex(r, g, b);
         }
 
-        // 獨立出的通用渲染核心，用來同時繪製「螢幕預覽」與「16:9錄影畫布」，一舉根除拉伸變形問題
-        function drawScene(targetCtx, w, h, dt) {
-            targetCtx.clearRect(0, 0, w, h);
-
-            const spX = w - 70;
-            const spY = h * 0.72;
-
-            // 1. 繪製喇叭波紋
-            speakerPulses.forEach((p, idx) => {
-                if (targetCtx === ctx) { // 僅在主螢幕更新波紋物理參數，避免雙重疊加
-                    p.r += dt * 0.12; // 調慢波紋速度
-                    p.opacity -= dt * 0.0015;
-                }
-                if (p.opacity <= 0) {
-                    if (targetCtx === ctx) speakerPulses.splice(idx, 1);
-                    return;
-                }
-                targetCtx.beginPath();
-                targetCtx.arc(spX, spY, p.r * (w / stageContainer.clientWidth), 0, Math.PI * 2);
-                targetCtx.strokeStyle = `rgba(255, 42, 109, ${p.opacity})`;
-                targetCtx.lineWidth = 2;
-                targetCtx.stroke();
-            });
-
-            // 2. 繪製小喇叭主體
-            targetCtx.save();
-            targetCtx.beginPath();
-            targetCtx.arc(spX, spY, 32 * (w / stageContainer.clientWidth), 0, Math.PI * 2);
-            const grad = targetCtx.createLinearGradient(spX-20, spY-20, spX+20, spY+20);
-            grad.addColorStop(0, '#7b2cbf');
-            grad.addColorStop(1, '#ff2a6d');
-            targetCtx.fillStyle = grad;
-            targetCtx.shadowBlur = 20;
-            targetCtx.shadowColor = 'rgba(255, 42, 109, 0.5)';
-            targetCtx.fill();
-            
-            targetCtx.fillStyle = '#ffffff';
-            targetCtx.font = `${26 * (w / stageContainer.clientWidth)}px sans-serif`;
-            targetCtx.textAlign = 'center';
-            targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('📢', spX, spY);
-            targetCtx.restore();
-
-            // 3. 繪製文字粒子
-            particles.forEach((p) => {
-                const age = globalTimer - p.birthTime;
-                if (age >= p.life) return;
-
-                const pct = age / p.life;
-                // 更平滑、更緩慢的 ease-out 曲線 (四次曲線)
-                const slowEaseOut = 1 - Math.pow(1 - pct, 4); 
-                
-                const curX = spX + (w * p.destXPct) * slowEaseOut;
-                const curY = spY + (h * p.destYPct) * slowEaseOut;
-                
-                // 【字體再調大】：膨脹係數提升至 0.5 到 11.0 倍
-                p.scale = 0.5 + (11.0 - 0.5) * pct;
-
-                if (pct < 0.15) {
-                    p.opacity = pct / 0.15; // 延長登場淡入，顯得更柔和
-                } else if (pct > 0.65) {
-                    p.opacity = 1 - (pct - 0.65) / 0.35; // 悠閒淡出
-                } else {
-                    p.opacity = 0.95;
-                }
-
-                const curColor = interpolateColor(p.startColor, pct);
-
-                targetCtx.save();
-                targetCtx.translate(curX, curY);
-                targetCtx.rotate(p.rotateDeg * pct);
-                
-                // 同步將動態比例計算套入縮放中
-                const dynamicScale = p.scale * (w / stageContainer.clientWidth);
-                targetCtx.scale(dynamicScale, dynamicScale);
-                
-                // 【核心優化】：基礎字型直接加大到 38px，配合 11 倍放大，帶來無與倫比的影院感
-                targetCtx.font = 'bold 38px "PingFang TC", "Microsoft JhengHei", sans-serif';
-                targetCtx.textAlign = 'center';
-                targetCtx.textBaseline = 'middle';
-                
-                targetCtx.shadowBlur = 25;
-                targetCtx.shadowColor = curColor;
-                targetCtx.fillStyle = curColor;
-                targetCtx.globalAlpha = p.opacity;
-                
-                targetCtx.fillText(p.text, 0, 0);
-                targetCtx.restore();
-            });
-
-            // 清理過期粒子（僅在主螢幕迴圈執行一次即可）
-            if (targetCtx === ctx) {
-                particles = particles.filter(p => (globalTimer - p.birthTime) < p.life);
-            }
-        }
-
         let lastTime = performance.now();
         function loop(now) {
             const dt = now - lastTime;
             lastTime = now;
+
+            // 獲取當前編輯預視畫面實體佈局寬高
+            const w = stageContainer.clientWidth;
+            const h = stageContainer.clientHeight;
+            const spX = w - 70;
+            const spY = h * 0.72;
 
             if (textLines.length > 0) {
                 globalTimer += dt;
@@ -475,13 +381,89 @@
                 }
             }
 
-            // 1. 繪製可視畫面（適應使用者當前瀏覽器外觀）
-            drawScene(ctx, stageContainer.clientWidth, stageContainer.clientHeight, dt);
+            // 清空實體預覽畫布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 2. 如果正在錄影，同步精準渲染出一張絕對是 16:9 比例的無變形畫面送入錄製管線
-            if (isRecording) {
-                drawScene(recordCtx, RECORD_WIDTH, RECORD_HEIGHT, dt);
-            }
+            // 1. 繪製喇叭波紋
+            speakerPulses.forEach((p, idx) => {
+                p.r += dt * 0.10; // 再次調慢波紋擴散速度
+                p.opacity -= dt * 0.0012;
+                if (p.opacity <= 0) {
+                    speakerPulses.splice(idx, 1);
+                    return;
+                }
+                ctx.beginPath();
+                ctx.arc(spX, spY, p.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 2. 繪製小喇叭主體
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(spX, spY, 32, 0, Math.PI * 2);
+            const grad = ctx.createLinearGradient(spX-20, spY-20, spX+20, spY+20);
+            grad.addColorStop(0, '#7b2cbf');
+            grad.addColorStop(1, '#ff2a6d');
+            ctx.fillStyle = grad;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(255, 42, 109, 0.5)';
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '26px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('📢', spX, spY);
+            ctx.restore();
+
+            // 3. 繪製文字粒子
+            particles.forEach((p, idx) => {
+                const age = globalTimer - p.birthTime;
+                if (age >= p.life) {
+                    particles.splice(idx, 1);
+                    return;
+                }
+
+                const pct = age / p.life;
+                // 更高階的平滑曲線，讓字體在畫面上「極緩慢、近乎漂浮地微調滑行」
+                const smoothStep = 1 - Math.pow(1 - pct, 4); 
+                
+                const curX = spX + (w * p.destXPct) * smoothStep;
+                const curY = spY + (h * p.destYPct) * smoothStep;
+                
+                // 【字體再調大】：終點放大係數上調至 13.5 倍！
+                p.scale = 0.5 + (13.5 - 0.5) * pct;
+
+                if (pct < 0.15) {
+                    p.opacity = pct / 0.15;
+                } else if (pct > 0.62) {
+                    p.opacity = 1 - (pct - 0.62) / 0.38; // 更加柔和的超長淡出
+                } else {
+                    p.opacity = 0.95;
+                }
+
+                const curColor = interpolateColor(p.startColor, pct);
+
+                ctx.save();
+                ctx.translate(curX, curY);
+                ctx.rotate(p.rotateDeg * pct);
+                ctx.scale(p.scale, p.scale);
+                
+                // 【字體再次調大】：基礎字型尺寸從 38px 直接暴增到 46px！
+                ctx.font = 'bold 46px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.shadowBlur = 30; // 配合超大字體，發光光暈加深
+                ctx.shadowColor = curColor;
+                ctx.fillStyle = curColor;
+                ctx.globalAlpha = p.opacity;
+                
+                ctx.fillText(p.text, 0, 0);
+                ctx.restore();
+            });
 
             requestAnimationFrame(loop);
         }
@@ -505,7 +487,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 分享連結已成功複製！對方打開將直接享有完美比例與超慢速大字體特效。');
+                alert('🚀 分享連結已複製！開啟者將完全同步您目前設定的大字體與極緩速度。');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -528,16 +510,12 @@
             }
         }
 
-        // 【大改版：錄製專用非變形管線】
+        // 【大修改：純淨的「所見即所得」錄影機制】
         recordBtn.addEventListener('click', () => {
             if (isRecording) return;
             
-            // 強制設定隱藏錄影畫布尺寸為標準 16:9
-            recordCanvas.width = RECORD_WIDTH;
-            recordCanvas.height = RECORD_HEIGHT;
-
-            // 從「隱藏的 16:9 標準畫布」中擷取影音流，而非從外面會變形的螢幕擷取
-            const stream = recordCanvas.captureStream(30);
+            // 核心調整：不再宣告任何隱藏畫布，直接抓取眼前正在預覽的、帶有真實比例的實體 canvas
+            const stream = canvas.captureStream(30); 
             const options = { mimeType: 'video/webm;codecs=vp9' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                 options.mimeType = 'video/webm;codecs=vp8';
@@ -553,6 +531,7 @@
             recordedChunks = [];
             isRecording = true;
             
+            // 自動沉降 UI，拉起紅標
             document.body.classList.add('hide-ui');
             recordingBadge.style.display = 'flex';
             
@@ -569,13 +548,14 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Perfect_16_9_Cinema_${Date.now()}.webm`;
+                // 命名更新，標註為所見即所得
+                a.download = `WhatYouSeeIsWhatYouGet_Video_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 完美 16:9 高清影片已自動下載！畫面比例已完美修正，絕不拉伸變形。');
+                alert('🎉 影片錄製下載完成！縱橫比例與您在編輯狀態預視的畫面 100% 完全相同！');
             };
 
             mediaRecorder.start();
