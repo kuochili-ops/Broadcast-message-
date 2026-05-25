@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訊息傳遞 APP - 高級劇院錄影與分享版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #050508;
+            color: #ffffff;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 頂部動態劇院舞台 */
+        #stage-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 85% 80%, #0f0f1f 0%, #020204 100%);
+            overflow: hidden;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 浮動提示：提示使用者可以點擊全螢幕 */
+        #ui-tip {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #a1a1aa;
+            pointer-events: none;
+            transition: opacity 0.4s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+        }
+
+        /* 下方多功能控制面板 */
+        #control-panel {
+            background-color: #0d0d12;
+            padding: 18px;
+            border-top: 1px solid #1c1c28;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(0);
+        }
+
+        /* 當進入隱藏 UI 狀態時 */
+        body.hide-ui #control-panel {
+            transform: translateY(100%);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        body.hide-ui #ui-tip {
+            opacity: 0;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #8e8e93;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background-color: #161622;
+            border: 1px solid #252538;
+            border-radius: 8px;
+            color: #ffffff;
+            padding: 10px 14px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        input[type="color"], input[type="number"] {
+            background-color: #161622;
+            border: 1px solid #252538;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 32px;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        button {
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-play { background: linear-gradient(135deg, #6200ee, #3700b3); box-shadow: 0 4px 10px rgba(98, 0, 238, 0.3); }
+        .btn-record { background: linear-gradient(135deg, #ff3b30, #b30000); box-shadow: 0 4px 10px rgba(255, 59, 48, 0.3); }
+        .btn-share { background: linear-gradient(135deg, #007aff, #004094); box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); }
+        .btn-toggle-ui { background: #2c2c2e; color: #aeaeb2; flex: 0 0 auto; }
+
+        button:active { transform: scale(0.97); opacity: 0.9; }
+
+        /* 正在錄影狀態的特殊閃爍指示燈 */
+        #recording-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 59, 48, 0.85);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            animation: pulse-red 1.5s infinite;
+            z-index: 200;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
+        <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
+        <div id="recording-badge">🔴 系統正在自動錄製影片中...</div>
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div id="control-panel">
+        <div class="input-group">
+            <label for="message-input">多行訊息輸入（支援中英文智慧分詞）：</label>
+            <textarea id="message-input" placeholder="請輸入訊息...">Hello World
+這是一段 自動錄影測試
+體驗 高級極光色彩漸變
+點擊網址 即可直接觀看...</textarea>
+        </div>
+
+        <div class="settings-row">
+            <div class="setting-item">
+                <label for="text-color">誕生色：</label>
+                <input type="color" id="text-color" value="#00ffcc">
+            </div>
+            <div class="setting-item">
+                <label for="speed-input">字距間隔(ms)：</label>
+                <input type="number" id="speed-input" value="600" min="100" max="2000" step="50" style="width: 75px;">
+            </div>
+            <div class="setting-item">
+                <label for="line-gap-input">行停頓(秒)：</label>
+                <input type="number" id="line-gap-input" value="2.5" min="0" max="10" step="0.5" style="width: 60px;">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-play" id="play-btn">▶ 播放</button>
+                <button class="btn-record" id="record-btn">🎥 錄製影片</button>
+                <button class="btn-share" id="share-btn">🔗 分享連結</button>
+                <button class="btn-toggle-ui" id="ui-btn" title="隱藏面板">👁‍🗨</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const stageContainer = document.getElementById('stage-container');
+        const messageInput = document.getElementById('message-input');
+        const textColorInput = document.getElementById('text-color');
+        const speedInput = document.getElementById('speed-input');
+        const lineGapInput = document.getElementById('line-gap-input');
+        const playBtn = document.getElementById('play-btn');
+        const recordBtn = document.getElementById('record-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const uiBtn = document.getElementById('ui-btn');
+        const recordingBadge = document.getElementById('recording-badge');
+
+        // 動態物理粒子/文字管理
+        let particles = [];
+        let textLines = [];
+        let currentLineIndex = 0;
+        let tokenTimeline = [];
+        let globalTimer = 0;
+        let nextLineUnlockTime = 0;
+
+        // 喇叭音波波紋狀態
+        let speakerPulses = [];
+        let speakerX = 0, speakerY = 0, speakerRadius = 32;
+
+        // 錄影相關變數
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordStartCycleIndex = 0;
+
+        // 初始化 Canvas 尺寸
+        function resizeCanvas() {
+            canvas.width = stageContainer.clientWidth * window.devicePixelRatio;
+            canvas.height = stageContainer.clientHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            // 更新喇叭在畫面右側中央偏下的座標
+            speakerX = stageContainer.clientWidth - 70;
+            speakerY = stageContainer.clientHeight * 0.72;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // 智慧分詞：英文單字保留，中文拆單字，過濾空字元
+        function parseTextToTokens(text) {
+            const regex = /([A-Za-z0-9'-]+)|(.)/g;
+            const tokens = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match[0].trim() !== '') tokens.push(match[0]);
+            }
+            return tokens;
+        }
+
+        // 解析多行輸入並編排精準的時間軸線
+        function compileTimeline() {
+            particles = [];
+            speakerPulses = [];
+            textLines = messageInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (textLines.length === 0) return;
+
+            currentLineIndex = 0;
+            globalTimer = 0;
+            prepareLineTimeline(0);
+        }
+
+        function prepareLineTimeline(lineIdx) {
+            tokenTimeline = [];
+            const tokens = parseTextToTokens(textLines[lineIdx]);
+            const interval = parseInt(speedInput.value) || 600;
+            const lineGap = parseFloat(lineGapInput.value) * 1000 || 2500;
+
+            let localTime = globalTimer;
+            tokens.forEach((tok) => {
+                tokenTimeline.push({ time: localTime, token: tok });
+                localTime += interval;
+            });
+            nextLineUnlockTime = localTime + lineGap;
+        }
+
+        // 發射單個字元/單字粒子的物理參數
+        function spawnToken(text) {
+            // 觸發喇叭擴散圈波紋
+            speakerPulses.push({ r: speakerRadius, opacity: 0.8 });
+
+            const destX = -(stageContainer.clientWidth * (1.1 + Math.random() * 0.3));
+            const destY = -(stageContainer.clientHeight * (1.0 + Math.random() * 0.3));
+            const destRotate = (Math.random() * 24 - 12) * Math.PI / 180;
+
+            particles.push({
+                text: text,
+                x: speakerX,
+                y: speakerY,
+                curX: speakerX,
+                curY: speakerY,
+                moveX: destX,
+                moveY: destY,
+                rotateDeg: destRotate,
+                scale: 0.5,
+                opacity: 0,
+                progress: 0,
+                life: 7000, // 生命週期 7000 毫秒 (7秒)
+                startColor: textColorInput.value,
+                birthTime: globalTimer
+            });
+        }
+
+        // 色彩隨生命週期過渡計算（誕生色 -> 青藍 -> 紫 -> 粉紅）
+        function interpolateColor(startHex, pct) {
+            const hexToRgb = hex => hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,(m,r,g,b) => '#' + r + r + g + g + b + b).substring(1).match(/.{2}/g).map(x => parseInt(x, 16));
+            const rgbToHex = (r, g, b) => "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+
+            let c1, c2, localPct;
+            const rgbStart = hexToRgb(startHex);
+            const rgbCyan = [0, 242, 254];
+            const rgbPurple = [155, 81, 224];
+            const rgbPink = [255, 0, 127];
+
+            if (pct < 0.35) {
+                c1 = rgbStart; c2 = rgbCyan; localPct = pct / 0.35;
+            } else if (pct < 0.70) {
+                c1 = rgbCyan; c2 = rgbPurple; localPct = (pct - 0.35) / 0.35;
+            } else {
+                c1 = rgbPurple; c2 = rgbPink; localPct = (pct - 0.70) / 0.30;
+            }
+
+            const r = Math.round(c1[0] + (c2[0] - c1[0]) * localPct);
+            const g = Math.round(c1[1] + (c2[1] - c1[1]) * localPct);
+            const b = Math.round(c1[2] + (c2[2] - c1[2]) * localPct);
+            return rgbToHex(r, g, b);
+        }
+
+        // 核心渲染與物理物理時鐘 (60 FPS)
+        let lastTime = performance.now();
+        function loop(now) {
+            const dt = now - lastTime;
+            lastTime = now;
+
+            if (textLines.length > 0) {
+                globalTimer += dt;
+
+                // 檢查時間軸是否需要發射新字詞
+                while (tokenTimeline.length > 0 && globalTimer >= tokenTimeline[0].time) {
+                    const node = tokenTimeline.shift();
+                    spawnToken(node.token);
+                }
+
+                // 檢查是否進入下一行
+                if (globalTimer >= nextLineUnlockTime) {
+                    const nextIndex = (currentLineIndex + 1) % textLines.length;
+                    
+                    // 【自動錄影關鍵收尾哨點】：如果是在錄影狀態，且已經繞完一圈回到第一行，立刻截斷存檔！
+                    if (isRecording && nextIndex === recordStartCycleIndex) {
+                        stopRecordingAndDownload();
+                    } else {
+                        currentLineIndex = nextIndex;
+                        prepareLineTimeline(currentLineIndex);
+                    }
+                }
+            }
+
+            // 清空畫布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 繪製小喇叭波紋
+            speakerPulses.forEach((p, idx) => {
+                p.r += dt * 0.15;
+                p.opacity -= dt * 0.002;
+                if (p.opacity <= 0) {
+                    speakerPulses.splice(idx, 1);
+                    return;
+                }
+                ctx.beginPath();
+                ctx.arc(speakerX, speakerY, p.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 2. 繪製小喇叭主體
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(speakerX, speakerY, speakerRadius, 0, Math.PI * 2);
+            const grad = ctx.createLinearGradient(speakerX-20, speakerY-20, speakerX+20, speakerY+20);
+            grad.addColorStop(0, '#7b2cbf');
+            grad.addColorStop(1, '#ff2a6d');
+            ctx.fillStyle = grad;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(255, 42, 109, 0.5)';
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '26px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('📢', speakerX, speakerY);
+            ctx.restore();
+
+            // 3. 繪製與更新所有的飄流文字粒子
+            particles.forEach((p, idx) => {
+                const age = globalTimer - p.birthTime;
+                if (age >= p.life) {
+                    particles.splice(idx, 1);
+                    return;
+                }
+
+                const pct = age / p.life; // 總體生命進度 (0 -> 1)
+
+                // 使用 cubic-bezier (0.15, 0.4, 0.3, 1.0) 的外推平滑平移
+                // 模擬出漸快後超遠距離悠閒滑行
+                const easeOut = 1 - Math.pow(1 - pct, 3); 
+                p.curX = p.x + p.moveX * easeOut;
+                p.curY = p.y + p.moveY * easeOut;
+                
+                // 尺寸從小 (0.5) 持續線性膨脹至 6.0 倍
+                p.scale = 0.5 + (6.0 - 0.5) * pct;
+
+                // 離開喇叭前 12% 快速顯現，最後 30% 生命週期緩慢淡出
+                if (pct < 0.12) {
+                    p.opacity = pct / 0.12;
+                } else if (pct > 0.70) {
+                    p.opacity = 1 - (pct - 0.70) / 0.30;
+                } else {
+                    p.opacity = 0.9;
+                }
+
+                // 計算當前極光漸變色
+                const curColor = interpolateColor(p.startColor, pct);
+
+                ctx.save();
+                ctx.translate(p.curX, p.curY);
+                ctx.rotate(p.rotateDeg * pct);
+                ctx.scale(p.scale, p.scale);
+                
+                ctx.font = 'bold 14px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 霓虹發光層
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = curColor;
+                ctx.fillStyle = curColor;
+                ctx.globalAlpha = p.opacity;
+                
+                ctx.fillText(p.text, 0, 0);
+                ctx.restore();
+            });
+
+            requestAnimationFrame(loop);
+        }
+
+        // 開關介面隱藏狀態
+        function toggleUI() {
+            document.body.classList.toggle('hide-ui');
+        }
+        stageContainer.addEventListener('click', (e) => {
+            // 防止點到指示燈也被觸發
+            if(e.target === stageContainer || e.target === canvas) toggleUI();
+        });
+        uiBtn.addEventListener('click', toggleUI);
+
+        // 【URL 分享連結生成功能】
+        shareBtn.addEventListener('click', () => {
+            const config = {
+                text: messageInput.value,
+                color: textColorInput.value,
+                speed: speedInput.value,
+                gap: lineGapInput.value
+            };
+            // 序列化為 Base64 字串，防中文字元壞軌使用 base64url 安全編碼
+            const base64Data = btoa(encodeURIComponent(JSON.stringify(config)));
+            const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
+            
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('🚀 分享連結已成功複製至剪貼簿！傳給朋友打開將直接進入全螢幕動態劇院模式。');
+            }).catch(() => {
+                alert(`請手動複製此連結：\n${shareUrl}`);
+            });
+        });
+
+        // 讀取網址 URL 狀態解析器
+        function parseUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedData = urlParams.get('msg');
+            if (encodedData) {
+                try {
+                    const decodedConfig = JSON.parse(decodeURIComponent(atob(encodedData)));
+                    messageInput.value = decodedConfig.text;
+                    textColorInput.value = decodedConfig.color;
+                    speedInput.value = decodedConfig.speed;
+                    lineGapInput.value = decodedConfig.gap;
+                    
+                    // 從連結點進來的，自動預設切換至「隱藏操作介面」的全螢幕播放觀賞模式
+                    document.body.classList.add('hide-ui');
+                } catch (e) {
+                    console.error("網址參數解析失敗", e);
+                }
+            }
+        }
+
+        // 【自動錄影存檔核心功能】
+        recordBtn.addEventListener('click', () => {
+            if (isRecording) return;
+            
+            // 1. 檢查瀏覽器支援度
+            const stream = canvas.captureStream(30); // 精準錄製 Canvas 底層 30 FPS 純淨畫面
+            const options = { mimeType: 'video/webm;codecs=vp9' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'video/webm;codecs=vp8';
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(stream, options);
+            } catch(e) {
+                alert('當前瀏覽器不支援 Canvas 錄影系統');
+                return;
+            }
+
+            recordedChunks = [];
+            isRecording = true;
+            
+            // 2. 自動優化介面：進入純淨全螢幕隱藏狀態，拉起錄製紅標
+            document.body.classList.add('hide-ui');
+            recordingBadge.style.display = 'flex';
+            
+            // 3. 設定檢查點：從目前第一行開始重播
+            compileTimeline();
+            recordStartCycleIndex = 0; 
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                
+                // 建立隱藏下載錨點下載自動命名影片
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MessageApp_Video_${Date.now()}.webm`;
+                a.click();
+                
+                // 4. 錄製完成還原 UI 面板
+                isRecording = false;
+                recordingBadge.style.display = 'none';
+                document.body.classList.remove('hide-ui');
+                alert('🎉 影片已完美捕捉並自動下載存檔完成！');
+            };
+
+            // 啟動錄製器
+            mediaRecorder.start();
+        });
+
+        function stopRecordingAndDownload() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        // 初始化啟動
+        playBtn.addEventListener('click', compileTimeline);
+        
+        // 初始運行工作流
+        parseUrlParams();
+        resizeCanvas();
+        compileTimeline();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
