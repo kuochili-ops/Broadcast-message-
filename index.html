@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 漫步大字錄影超清版</title>
+    <title>訊息傳遞 APP - 錄影字體不變形版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -11,7 +11,7 @@
             padding: 0;
         }
         body {
-            background-color: #040406;
+            background-color: #000000;
             color: #ffffff;
             font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
             height: 100vh;
@@ -21,17 +21,17 @@
             user-select: none;
         }
 
-        /* 頂部動態劇院舞台 */
+        /* 頂部動態舞台 */
         #stage-container {
             flex: 1;
             position: relative;
-            background: radial-gradient(circle at 85% 80%, #0e0e1a 0%, #010102 100%);
+            background: #000000;
             overflow: hidden;
             width: 100%;
             cursor: pointer;
         }
 
-        /* 讓畫布在手機螢幕上完美滿版顯示，但內部保持 2K 超清解析度 */
+        /* 讓畫布在網頁上滿版自適應，底層保持高清獨立解析度 */
         canvas {
             display: block;
             width: 100%;
@@ -45,7 +45,7 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.75);
             padding: 8px 18px;
             border-radius: 20px;
             font-size: 12px;
@@ -199,17 +199,17 @@
 
     <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 2K無損位元率錄影中（太空漫步巨字版）...</div>
+        <div id="recording-badge">🔴 高清向量不變形錄影中...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">超清晰高清巨字
-太空慢速漫步
-錄影完全不糊
-邊緣銳利細膩</textarea>
+            <textarea id="message-input" placeholder="請輸入訊息...">巨型霓虹字體
+漫步悠閒滑行
+文字絕對清晰
+絕不縮水成方形</textarea>
         </div>
 
         <div class="settings-row">
@@ -237,7 +237,7 @@
 
     <script>
         const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const ctx = canvas.getContext('2d');
         const stageContainer = document.getElementById('stage-container');
         const messageInput = document.getElementById('message-input');
         const textColorInput = document.getElementById('text-color');
@@ -262,10 +262,9 @@
         let mediaRecorder = null;
         let recordedChunks = [];
 
-        // 【技術修正點 1】：將內部畫布解析度強行鎖定在 1440 x 2560 超高清電影比例
-        // 這樣 captureStream 錄影抓到的就是絕對無損的超高解像度基礎，不再受手機顯示拉伸影響
-        const BASE_WIDTH = 1440;
-        const BASE_HEIGHT = 2560;
+        // 鎖定高清比例：1200 x 2160
+        const BASE_WIDTH = 1200;
+        const BASE_HEIGHT = 2160;
 
         function initCanvasSize() {
             canvas.width = BASE_WIDTH;
@@ -308,11 +307,10 @@
         }
 
         function spawnToken(text) {
-            speakerPulses.push({ r: 80, opacity: 0.8 }); // 適應高清尺寸加大波紋
+            speakerPulses.push({ r: 60, opacity: 0.8 });
 
-            // 終點設定在高清畫布左上角外緣
-            const destOffsetMaxX = -(500 + Math.random() * 500); 
-            const destOffsetMaxY = -(500 + Math.random() * 500); 
+            const destOffsetMaxX = -(400 + Math.random() * 400); 
+            const destOffsetMaxY = -(400 + Math.random() * 400); 
             const destRotate = (Math.random() * 16 - 8) * Math.PI / 180;
 
             particles.push({
@@ -320,7 +318,7 @@
                 rotateDeg: destRotate,
                 scale: 1.0, 
                 opacity: 0,
-                life: 16000, 
+                life: 14000, 
                 startColor: textColorInput.value,
                 birthTime: globalTimer,
                 destOffsetMaxX: destOffsetMaxX,
@@ -357,9 +355,8 @@
             const dt = now - lastTime;
             lastTime = now;
 
-            // 右下角喇叭出生錨定點
-            const spX = BASE_WIDTH - 150;
-            const spY = BASE_HEIGHT - 150;
+            const spX = BASE_WIDTH - 120;
+            const spY = BASE_HEIGHT - 120;
 
             if (textLines.length > 0) {
                 globalTimer += dt;
@@ -381,11 +378,13 @@
                 }
             }
 
-            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            // 用純黑完整刷洗畫布，確保沒有殘留陰影
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            // 1. 繪製右下角喇叭波紋
+            // 1. 喇叭波紋
             speakerPulses.forEach((p, idx) => {
-                p.r += dt * 0.15;
+                p.r += dt * 0.12;
                 p.opacity -= dt * 0.001;
                 if (p.opacity <= 0) {
                     speakerPulses.splice(idx, 1);
@@ -394,39 +393,32 @@
                 ctx.beginPath();
                 ctx.arc(spX, spY, p.r, 0, Math.PI * 2);
                 ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity * 0.6})`;
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 3;
                 ctx.stroke();
             });
 
-            // 2. 繪製喇叭主體
+            // 2. 喇叭主體
             ctx.save();
             ctx.translate(spX, spY);
             ctx.rotate(Math.PI / 4);
-            
             ctx.beginPath();
-            ctx.arc(0, 0, 75, 0, Math.PI * 2); 
-            const grad = ctx.createLinearGradient(-50, -50, 50, 50);
+            ctx.arc(0, 0, 60, 0, Math.PI * 2);
+            const grad = ctx.createLinearGradient(-40, -40, 40, 40);
             grad.addColorStop(0, '#7b2cbf');
             grad.addColorStop(1, '#ff2a6d');
             ctx.fillStyle = grad;
-            ctx.shadowBlur = 35;
-            ctx.shadowColor = 'rgba(255, 42, 109, 0.5)';
             ctx.fill();
-            
             ctx.fillStyle = '#ffffff';
-            ctx.font = '56px sans-serif'; 
+            ctx.font = '48px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('📢', 0, 0);
             ctx.restore();
 
-            // 3. 繪製超高清漫步大字
-            particles.forEach((p, idx) => {
+            // 3. 漫步文字繪製
+            particles.forEach((p) => {
                 const age = globalTimer - p.birthTime;
-                if (age >= p.life) {
-                    particles.splice(idx, 1);
-                    return;
-                }
+                if (age >= p.life) return;
 
                 const pct = age / p.life;
                 const smoothStep = 1 - Math.pow(1 - pct, 5); 
@@ -434,13 +426,12 @@
                 const curX = spX + (p.destOffsetMaxX - spX) * smoothStep;
                 const curY = spY + (p.destOffsetMaxY - spY) * smoothStep;
                 
-                // 最終字體放大倍率調高至 10.5 倍，極具視覺張力
-                p.scale = 1.0 + (10.5 - 1.0) * pct;
+                p.scale = 1.0 + (9.5 - 1.0) * pct;
 
                 if (pct < 0.10) {
                     p.opacity = pct / 0.10;
-                } else if (pct > 0.82) {
-                    p.opacity = 1 - (pct - 0.82) / 0.18; 
+                } else if (pct > 0.85) {
+                    p.opacity = 1 - (pct - 0.85) / 0.15; 
                 } else {
                     p.opacity = 0.95;
                 }
@@ -452,17 +443,30 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                // 【基礎清晰度加強】：基礎字體直接使用 64px 的極粗黑體，確保縮放時邊緣不發散
-                ctx.font = '900 64px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                // 設定安全的標準中文字型與大小
+                ctx.font = '900 52px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
-                ctx.shadowBlur = 45; 
-                ctx.shadowColor = curColor;
-                ctx.fillStyle = curColor;
                 ctx.globalAlpha = p.opacity;
+
+                // 【核心修正：徹底禁用 ctx.shadowBlur】
+                // 採用多層向量疊加技術，模擬出更亮、且錄影絕對不會變成方形的霓虹效果：
                 
+                // 第一層：超寬底色外描邊（模擬最外圍的霓虹淡光暈）
+                ctx.strokeStyle = curColor;
+                ctx.lineWidth = 14;
+                ctx.lineJoin = "round";
+                ctx.strokeText(p.text, 0, 0);
+
+                // 第二層：核心飽和度描邊（讓霓虹燈管顏色更飽滿）
+                ctx.strokeStyle = curColor;
+                ctx.lineWidth = 6;
+                ctx.strokeText(p.text, 0, 0);
+
+                // 第三層：頂層核心白色（實心填色，保證文字筆畫在任何手機錄影下都絕對清晰、字字分明）
+                ctx.fillStyle = "#ffffff";
                 ctx.fillText(p.text, 0, 0);
+
                 ctx.restore();
             });
 
@@ -488,7 +492,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 高清分享連結已複製！');
+                alert('🚀 分享連結已複製！');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -514,29 +518,21 @@
         recordBtn.addEventListener('click', () => {
             if (isRecording) return;
             
-            // 抓取畫布最底層物理流
             const stream = canvas.captureStream(30); 
-            
             let selectedMimeType = 'video/webm;codecs=vp9';
             if (!MediaRecorder.isTypeSupported(selectedMimeType)) {
                 selectedMimeType = 'video/webm;codecs=vp8';
             }
 
-            // 【技術修正點 2】：強制灌入 15 Mbps (15000000) 的大寬高高位元率壓縮限制
-            // 逼迫手機在字體一邊移動、一邊變大時，絕對不准偷工減料把邊緣變模糊！
             const recorderOptions = { 
                 mimeType: selectedMimeType,
-                videoBitsPerSecond: 15000000 
+                videoBitsPerSecond: 12000000 // 保持 12Mbps 高碼率
             };
 
             try {
                 mediaRecorder = new MediaRecorder(stream, recorderOptions);
             } catch(e) {
-                try {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType, videoBitsPerSecond: 8000000 });
-                } catch(err) {
-                    mediaRecorder = new MediaRecorder(stream);
-                }
+                mediaRecorder = new MediaRecorder(stream);
             }
 
             recordedChunks = [];
@@ -558,13 +554,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `UHD_Space_Drift_${Date.now()}.webm`;
+                a.download = `純淨不變形錄影_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 2K 高清位元率影片錄製完成！字體從右下角漫步放大至左上角，全程邊緣完美銳利、不發糊！');
+                alert('🎉 影片錄製成功！已繞過行動裝置硬體解碼 Bug，文字邊緣筆畫完美重現，絕不變成方形！');
             };
 
             mediaRecorder.start();
