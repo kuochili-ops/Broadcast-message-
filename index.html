@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 震撼巨字不發糊版</title>
+    <title>訊息傳遞 APP - 喇叭動態擴大爆發版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -197,17 +197,17 @@
 
     <div id="stage-container">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 超高畫質巨字錄影中...</div>
+        <div id="recording-badge">🔴 喇叭震撼收縮錄影中...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">巨幕震撼字體
-超級特大加粗
-邊緣平滑銳利
-效果所見所得</textarea>
+            <textarea id="message-input" placeholder="請輸入訊息...">喇叭同步放大
+噴字動感節奏
+震撼巨幕效果
+邊緣平滑銳利</textarea>
         </div>
 
         <div class="settings-row">
@@ -255,6 +255,8 @@
         let nextLineUnlockTime = 0;
 
         let speakerPulses = [];
+        let speakerScale = 1.0; // 喇叭的核心控制縮放值
+        
         let isRecording = false;
         let recordStartCycleIndex = 0;
         let mediaRecorder = null;
@@ -282,6 +284,7 @@
         function compileTimeline() {
             particles = [];
             speakerPulses = [];
+            speakerScale = 1.0;
             textLines = messageInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             if (textLines.length === 0) return;
 
@@ -306,8 +309,10 @@
 
         function spawnToken(text) {
             speakerPulses.push({ r: 60, opacity: 0.8 });
+            
+            // 【核心變更】：字飄出喇叭口時，喇叭口瞬間膨脹至 1.4 倍
+            speakerScale = 1.4;
 
-            // 調整終點範圍，讓巨大字體完美滑行，不輕易出界
             const destOffsetMaxX = -(450 + Math.random() * 450); 
             const destOffsetMaxY = -(450 + Math.random() * 450); 
             const destRotate = (Math.random() * 12 - 6) * Math.PI / 180;
@@ -380,6 +385,9 @@
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
+            // 【喇叭縮放彈性回彈】：讓膨脹的喇叭每一幀平滑回歸到原大小 1.0
+            speakerScale += (1.0 - speakerScale) * 0.12;
+
             // 1. 喇叭波紋
             speakerPulses.forEach((p, idx) => {
                 p.r += dt * 0.12;
@@ -389,16 +397,18 @@
                     return;
                 }
                 ctx.beginPath();
-                ctx.arc(spX, spY, p.r, 0, Math.PI * 2);
+                ctx.arc(spX, spY, p.r * speakerScale, 0, Math.PI * 2); // 波紋同步受到喇叭擴張影響
                 ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity * 0.6})`;
                 ctx.lineWidth = 3;
                 ctx.stroke();
             });
 
-            // 2. 喇叭主體
+            // 2. 動態擴大喇叭主體
             ctx.save();
             ctx.translate(spX, spY);
+            ctx.scale(speakerScale, speakerScale); // 套用即時物理縮放值
             ctx.rotate(Math.PI / 4);
+            
             ctx.beginPath();
             ctx.arc(0, 0, 60, 0, Math.PI * 2);
             const grad = ctx.createLinearGradient(-40, -40, 40, 40);
@@ -406,6 +416,7 @@
             grad.addColorStop(1, '#ff2a6d');
             ctx.fillStyle = grad;
             ctx.fill();
+            
             ctx.fillStyle = '#ffffff';
             ctx.font = '48px sans-serif';
             ctx.textAlign = 'center';
@@ -413,7 +424,7 @@
             ctx.fillText('📢', 0, 0);
             ctx.restore();
 
-            // 3. 漫步震撼大字繪製
+            // 3. 漫步大字繪製
             particles.forEach((p) => {
                 const age = globalTimer - p.birthTime;
                 if (age >= p.life) return;
@@ -424,7 +435,6 @@
                 const curX = spX + (p.destOffsetMaxX - spX) * smoothStep;
                 const curY = spY + (p.destOffsetMaxY - spY) * smoothStep;
                 
-                // 基礎字體本身加大後，漫步放大倍率調整為 4.8 倍，即可達到遮天蔽日的巨幕效果
                 p.scale = 1.0 + (4.8 - 1.0) * pct;
 
                 if (pct < 0.10) {
@@ -442,25 +452,21 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                // 【核心字級加大】：將基礎字級從 52px 直接拔高到 160px，確保大字底層向量網格絕對精細
                 ctx.font = '900 160px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.globalAlpha = p.opacity;
 
-                // 霓虹發光描邊同步按比例加粗，維持大字視覺飽和度
-                // 第一層：淡光暈外描邊
+                // 霓虹向量描邊
                 ctx.strokeStyle = curColor;
                 ctx.lineWidth = 30;
                 ctx.lineJoin = "round";
                 ctx.strokeText(p.text, 0, 0);
 
-                // 第二層：核心燈管描邊
                 ctx.strokeStyle = curColor;
                 ctx.lineWidth = 12;
                 ctx.strokeText(p.text, 0, 0);
 
-                // 第三層：核心純白筆畫
                 ctx.fillStyle = "#ffffff";
                 ctx.fillText(p.text, 0, 0);
 
@@ -489,7 +495,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 巨字版分享連結已複製！');
+                alert('🚀 分享連結已複製！');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -523,7 +529,7 @@
 
             const recorderOptions = { 
                 mimeType: selectedMimeType,
-                videoBitsPerSecond: 15000000 // 提升至 15Mbps 超高清頻寬
+                videoBitsPerSecond: 15000000 
             };
 
             try {
@@ -551,13 +557,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `巨幕超大字報_${Date.now()}.webm`;
+                a.download = `動感喇叭噴字_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片錄製成功！字體已全面加粗放大，且錄影畫質清晰、筆畫平滑銳利！');
+                alert('🎉 影片錄製成功！喇叭口會隨著出字規律跳動收縮，效果極具節奏感！');
             };
 
             mediaRecorder.start();
