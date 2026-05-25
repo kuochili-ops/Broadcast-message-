@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 實體畫面自適應錄製版</title>
+    <title>訊息傳遞 APP - 全螢幕不變形終極版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -63,11 +63,11 @@
             flex-direction: column;
             gap: 12px;
             z-index: 100;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             transform: translateY(0);
         }
 
-        /* 隱藏 UI 狀態 */
+        /* 隱藏 UI 狀態（錄影或全螢幕劇院模式） */
         body.hide-ui #control-panel {
             transform: translateY(100%);
             position: absolute;
@@ -197,13 +197,13 @@
 
     <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 所見即所得錄影中（完美保留當前實體視窗比例）...</div>
+        <div id="recording-badge">🔴 所見即所得錄影中（動態修正畫面伸縮變形）...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
-            <label for="message-input">多行訊息輸入：</label>
+            <label for="message-input">多行訊息輸入（超大字體、動態防擠壓變形版）：</label>
             <textarea id="message-input" placeholder="請輸入訊息...">巨型霓虹字體
 漫步悠閒滑行
 所見即所得錄製
@@ -260,11 +260,10 @@
         let mediaRecorder = null;
         let recordedChunks = [];
 
+        // 監聽並自動重新調整 Canvas 尺寸，避免在錄影中重設導致流中斷
         function resizeCanvas() {
-            if (isRecording) return; // 錄影中途不重設尺寸
             canvas.width = stageContainer.clientWidth * window.devicePixelRatio;
             canvas.height = stageContainer.clientHeight * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
         }
         window.addEventListener('resize', resizeCanvas);
 
@@ -306,9 +305,9 @@
         function spawnToken(text) {
             speakerPulses.push({ r: 32, opacity: 0.8 });
 
-            // 【針對直式方形舞台優化】：將終點座標內縮收攏至畫布內部左上方，防止字體飄出邊界被切掉
-            const destXRatio = 0.08 + Math.random() * 0.18; // 停在畫布左側 8% ~ 26% 處
-            const destYRatio = 0.08 + Math.random() * 0.18; // 停在畫布頂部 8% ~ 26% 處
+            // 終點改用相對畫布比例，預設落在畫布左上角的安全範圍內
+            const destXRatio = 0.08 + Math.random() * 0.22; // 寬度左側 8% - 30% 處
+            const destYRatio = 0.08 + Math.random() * 0.22; // 高度頂部 8% - 30% 處
             const destRotate = (Math.random() * 16 - 8) * Math.PI / 180;
 
             particles.push({
@@ -316,7 +315,7 @@
                 rotateDeg: destRotate,
                 scale: 0.5,
                 opacity: 0,
-                life: 9500, // 超長緩慢生命週期
+                life: 9500, // 超緩慢飄移
                 startColor: textColorInput.value,
                 birthTime: globalTimer,
                 destXRatio: destXRatio,
@@ -353,12 +352,19 @@
             const dt = now - lastTime;
             lastTime = now;
 
+            // 核心修正：每一影格都實時獲取最新的 stage 寬高（處理隱藏面板時的動態高度伸縮）
             const w = stageContainer.clientWidth;
             const h = stageContainer.clientHeight;
             
-            // 小喇叭位置固定在預覽畫面的右下角內縮
+            // 讓小喇叭無論在什麼高度下，都雷打不動地維持在右下角邊界內縮
             const spX = w - 60;
             const spY = h - 60;
+
+            // 如果視窗發生改變，動態同步畫布大小
+            if (canvas.width !== w * window.devicePixelRatio || canvas.height !== h * window.devicePixelRatio) {
+                canvas.width = w * window.devicePixelRatio;
+                canvas.height = h * window.devicePixelRatio;
+            }
 
             if (textLines.length > 0) {
                 globalTimer += dt;
@@ -380,12 +386,14 @@
                 }
             }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            ctx.clearRect(0, 0, w, h);
 
             // 1. 繪製喇叭波紋
             speakerPulses.forEach((p, idx) => {
                 p.r += dt * 0.08; 
-                p.opacity -= dt * 0.001;
+                p.opacity -= dt * 0.0012;
                 if (p.opacity <= 0) {
                     speakerPulses.splice(idx, 1);
                     return;
@@ -427,14 +435,15 @@
                 const pct = age / p.life;
                 const smoothStep = 1 - Math.pow(1 - pct, 4); 
                 
-                // 起點是右下角小喇叭 (spX, spY)，終點是畫布內部的左上角百分比位置
+                // 【終極修復公式】：不使用靜態終點，而是「即時」根據當下的寬高計算起訖點
+                // 這樣一來，即使中途面板收縮、h 變大了，文字也會滑順地動態分開，絕不會擠在一起
                 const targetX = w * p.destXRatio;
                 const targetY = h * p.destYRatio;
                 const curX = spX + (targetX - spX) * smoothStep;
                 const curY = spY + (targetY - spY) * smoothStep;
                 
-                // 【適應方形螢幕的極致大字體】：從 0.6 倍放大至 5.5 倍
-                p.scale = 0.6 + (5.5 - 0.6) * pct;
+                // 調整直式全螢幕下的完美字體放大比率（從 0.6 放大至 5.6 倍）
+                p.scale = 0.6 + (5.6 - 0.6) * pct;
 
                 if (pct < 0.15) {
                     p.opacity = pct / 0.15;
@@ -451,8 +460,8 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                // 基礎尺寸設定為 36px，配合放大能完美填滿直式方形畫布
-                ctx.font = 'bold 36px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                // 基礎字型設定為 38px
+                ctx.font = 'bold 38px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
@@ -465,6 +474,7 @@
                 ctx.restore();
             });
 
+            ctx.restore();
             requestAnimationFrame(loop);
         }
 
@@ -513,7 +523,7 @@
         recordBtn.addEventListener('click', () => {
             if (isRecording) return;
             
-            // 捕捉與您當前手機畫面上 100% 一模一樣比例的實體 Canvas
+            // 捕捉與實體 canvas 100% 同步的影音串流
             const stream = canvas.captureStream(30); 
             const options = { mimeType: 'video/webm;codecs=vp9' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -523,16 +533,18 @@
             try {
                 mediaRecorder = new MediaRecorder(stream, options);
             } catch(e) {
-                alert('瀏覽器不支援高清錄影系統');
+                alert('瀏覽器不支援錄影系統');
                 return;
             }
 
             recordedChunks = [];
             isRecording = true;
             
+            // 收起操作面板
             document.body.classList.add('hide-ui');
             recordingBadge.style.display = 'flex';
             
+            // 重設並重新開始完美的一輪錄製
             compileTimeline();
             recordStartCycleIndex = 0; 
 
@@ -546,13 +558,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `WYSIWYG_Flex_Video_${Date.now()}.webm`;
+                a.download = `Perfect_Dynamic_Render_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片錄製成功！縱橫比例與您在手機畫面上看到的完全相同，文字絕不被裁切！');
+                alert('🎉 影片錄製成功！已徹底解決因隱藏面板帶來的畫面高度拉伸與字體擠壓問題！');
             };
 
             mediaRecorder.start();
