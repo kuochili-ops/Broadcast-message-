@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>粒子訊息 APP - 字字分明修正版</title>
+    <title>訊息傳遞 APP - 漫步大字錄影超清版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -13,7 +13,7 @@
         body {
             background-color: #040406;
             color: #ffffff;
-            font-family: "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -25,16 +25,13 @@
         #stage-container {
             flex: 1;
             position: relative;
-            background: #000000;
+            background: radial-gradient(circle at 85% 80%, #0e0e1a 0%, #010102 100%);
             overflow: hidden;
             width: 100%;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* 畫布寬高自適應拉伸，底層保持高畫質解析度 */
+        /* 讓畫布在手機螢幕上完美滿版顯示，但內部保持 2K 超清解析度 */
         canvas {
             display: block;
             width: 100%;
@@ -48,16 +45,15 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.7);
             padding: 8px 18px;
             border-radius: 20px;
             font-size: 12px;
             color: #a1a1aa;
             pointer-events: none;
             transition: opacity 0.4s;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(4px);
-            z-index: 150;
         }
 
         /* 下方多功能控制面板 */
@@ -70,6 +66,7 @@
             gap: 12px;
             z-index: 100;
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(0);
         }
 
         /* 隱藏 UI 狀態 */
@@ -99,13 +96,13 @@
 
         textarea {
             width: 100%;
-            height: 75px;
+            height: 80px;
             background-color: #12121a;
             border: 1px solid #1f1f2e;
             border-radius: 8px;
             color: #ffffff;
             padding: 10px 14px;
-            font-size: 14px;
+            font-size: 15px;
             resize: none;
             outline: none;
             font-family: inherit;
@@ -114,7 +111,7 @@
 
         .settings-row {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -126,17 +123,7 @@
             font-size: 13px;
         }
 
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 13px;
-            color: #00ffcc;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        input[type="color"], input[type="number"], select {
+        input[type="color"], input[type="number"] {
             background-color: #12121a;
             border: 1px solid #1f1f2e;
             color: white;
@@ -146,7 +133,7 @@
         }
 
         input[type="color"] {
-            width: 36px;
+            width: 40px;
             height: 32px;
             padding: 2px;
             cursor: pointer;
@@ -154,9 +141,9 @@
 
         .btn-group {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             flex: 1;
-            min-width: 260px;
+            min-width: 280px;
         }
 
         button {
@@ -164,24 +151,25 @@
             border: none;
             border-radius: 8px;
             color: white;
-            padding: 10px 12px;
-            font-size: 13px;
+            padding: 10px 14px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
         }
 
-        .btn-play { background: linear-gradient(135deg, #6200ee, #3700b3); }
-        .btn-record { background: linear-gradient(135deg, #ff3b30, #b30000); }
-        .btn-share { background: linear-gradient(135deg, #007aff, #004094); }
+        .btn-play { background: linear-gradient(135deg, #6200ee, #3700b3); box-shadow: 0 4px 10px rgba(98, 0, 238, 0.3); }
+        .btn-record { background: linear-gradient(135deg, #ff3b30, #b30000); box-shadow: 0 4px 10px rgba(255, 59, 48, 0.3); }
+        .btn-share { background: linear-gradient(135deg, #007aff, #004094); box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); }
         .btn-toggle-ui { background: #2c2c2e; color: #aeaeb2; flex: 0 0 auto; }
 
-        button:active { transform: scale(0.97); }
+        button:active { transform: scale(0.97); opacity: 0.9; }
 
+        /* 正在錄影指示燈 */
         #recording-badge {
             position: absolute;
             top: 20px;
@@ -209,420 +197,346 @@
 </head>
 <body>
 
-    <div id="stage-container">
-        <div id="ui-tip">💡 點擊螢幕任意空白處，可隱藏/顯示下方控制面板</div>
-        <div id="recording-badge">🔴 高清高位元率錄影中...</div>
+    <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
+        <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
+        <div id="recording-badge">🔴 2K無損位元率錄影中（太空漫步巨字版）...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">美
-讚
-拍得好</textarea>
+            <textarea id="message-input" placeholder="請輸入訊息...">超清晰高清巨字
+太空慢速漫步
+錄影完全不糊
+邊緣銳利細膩</textarea>
         </div>
 
         <div class="settings-row">
             <div class="setting-item">
-                <label for="text-font">字型：</label>
-                <select id="text-font">
-                    <option value='"PingFang TC", "Microsoft JhengHei", sans-serif'>粗黑體</option>
-                    <option value='"STSong", "PMingLiU", serif'>仿宋體</option>
-                </select>
+                <label for="text-color">誕生色：</label>
+                <input type="color" id="text-color" value="#00ffcc">
             </div>
-            
             <div class="setting-item">
-                <label for="text-color">顏色：</label>
-                <input type="color" id="text-color" value="#ff2a6d">
+                <label for="speed-input">出字慢速(ms)：</label>
+                <input type="number" id="speed-input" value="900" min="100" max="3000" step="50" style="width: 75px;">
             </div>
-
-            <div class="checkbox-item">
-                <input type="checkbox" id="include-time-check" checked>
-                <label for="include-time-check" style="color:#00ffcc; cursor:pointer;">📅 加上今日時間</label>
-            </div>
-
             <div class="setting-item">
-                <label for="speed-input">出字(ms)：</label>
-                <input type="number" id="speed-input" value="1000" min="200" max="3000" step="100" style="width: 65px;">
+                <label for="line-gap-input">行停頓(秒)：</label>
+                <input type="number" id="line-gap-input" value="3.5" min="0" max="10" step="0.5" style="width: 60px;">
             </div>
 
             <div class="btn-group">
                 <button class="btn-play" id="play-btn">▶ 播放</button>
                 <button class="btn-record" id="record-btn">🎥 錄製影片</button>
-                <button class="btn-share" id="share-btn">🔗 傳送網址</button>
-                <button class="btn-toggle-ui" id="ui-btn">👁‍角</button>
+                <button class="btn-share" id="share-btn">🔗 分享連結</button>
+                <button class="btn-toggle-ui" id="ui-btn" title="隱藏面板">👁‍🗨</button>
             </div>
         </div>
     </div>
 
-    <canvas id="memoryCanvas" style="display: none;"></canvas>
-
     <script>
         const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d');
-        const memCanvas = document.getElementById('memoryCanvas');
-        const memCtx = memCanvas.getContext('2d', { willReadFrequently: true });
-
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const stageContainer = document.getElementById('stage-container');
         const messageInput = document.getElementById('message-input');
         const textColorInput = document.getElementById('text-color');
-        const fontSelect = document.getElementById('text-font');
         const speedInput = document.getElementById('speed-input');
-        const includeTimeCheck = document.getElementById('include-time-check');
-        
+        const lineGapInput = document.getElementById('line-gap-input');
         const playBtn = document.getElementById('play-btn');
         const recordBtn = document.getElementById('record-btn');
         const shareBtn = document.getElementById('share-btn');
         const uiBtn = document.getElementById('ui-btn');
         const recordingBadge = document.getElementById('recording-badge');
 
-        // 鎖定物理畫布尺寸（拉高解析度，確保錄影顆粒精準）
-        const BASE_WIDTH = 1080;
-        const BASE_HEIGHT = 1920;
-
         let particles = [];
         let textLines = [];
         let currentLineIndex = 0;
-        let carouselTimer = null;
-        let phase = "gather"; // "gather" 聚集, "explode" 爆散, "turbulent" 漩渦擾動
-        let phaseTimer = 0;
+        let tokenTimeline = [];
+        let globalTimer = 0;
+        let nextLineUnlockTime = 0;
 
+        let speakerPulses = [];
         let isRecording = false;
+        let recordStartCycleIndex = 0;
         let mediaRecorder = null;
         let recordedChunks = [];
 
-        // 數字轉中文的對照表，徹底消滅狹窄的英文數字
-        const numToChan = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-
-        function toChineseNumString(numStr) {
-            return numStr.split('').map(char => {
-                if (char >= '0' && char <= '9') {
-                    return numToChan[parseInt(char)];
-                }
-                return char;
-            }).join('');
-        }
-
-        // 智慧型時間中文化轉換器（保證字體結構寬大分明）
-        function getChineseDateTimeStrings() {
-            const now = new Date();
-            const year = now.getFullYear().toString();
-            const month = (now.getMonth() + 1).toString().padStart(2, '0');
-            const day = now.getDate().toString().padStart(2, '0');
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-
-            const chineseYear = toChineseNumString(year);
-            const chineseMonth = toChineseNumString(month);
-            const chineseDay = toChineseNumString(day);
-            const chineseHours = toChineseNumString(hours);
-            const chineseMinutes = toChineseNumString(minutes);
-
-            return [
-                `${chineseYear}年${chineseMonth}月${chineseDay}日`,
-                `${chineseHours}點${chineseMinutes}分`
-            ];
-        }
+        // 【技術修正點 1】：將內部畫布解析度強行鎖定在 1440 x 2560 超高清電影比例
+        // 這樣 captureStream 錄影抓到的就是絕對無損的超高解像度基礎，不再受手機顯示拉伸影響
+        const BASE_WIDTH = 1440;
+        const BASE_HEIGHT = 2560;
 
         function initCanvasSize() {
             canvas.width = BASE_WIDTH;
             canvas.height = BASE_HEIGHT;
-            memCanvas.width = BASE_WIDTH;
-            memCanvas.height = BASE_HEIGHT;
         }
 
-        // 初始化粒子池（5000個常駐粒子，防止動態增刪造成記憶體崩潰與抖動變形）
-        function initParticlePool() {
+        function parseTextToTokens(text) {
+            const regex = /([A-Za-z0-9'-]+)|(.)/g;
+            const tokens = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match[0].trim() !== '') tokens.push(match[0]);
+            }
+            return tokens;
+        }
+
+        function compileTimeline() {
             particles = [];
-            for (let i = 0; i < 5200; i++) {
-                particles.push({
-                    x: Math.random() * BASE_WIDTH,
-                    y: Math.random() * BASE_HEIGHT,
-                    targetX: Math.random() * BASE_WIDTH,
-                    targetY: Math.random() * BASE_HEIGHT,
-                    vx: 0,
-                    vy: 0,
-                    size: 1.8 + Math.random() * 1.5, // 粒子稍微放大，提升顆粒質感
-                    alpha: 0.1 + Math.random() * 0.8,
-                    active: false,
-                    color: '#ffffff'
-                });
-            }
-        }
-
-        // 核心修正：採樣文字像素地圖
-        function sampleTextMap(text, isTimeLine = false) {
-            memCtx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            
-            // 根據是否為時間，給予字體最安全的清晰尺寸
-            let fSize = isTimeLine ? 72 : 92; 
-            memCtx.font = `900 ${fSize}px ${fontSelect.value}`;
-            memCtx.fillStyle = "#ffffff";
-            memCtx.textAlign = "center";
-            memCtx.textBaseline = "middle";
-
-            // 計算滿寬縮放，確保文字撐滿直式螢幕
-            const metrics = memCtx.measureText(text);
-            const targetWidth = BASE_WIDTH * 0.88;
-            if (metrics.width > 0) {
-                const scaleFactor = targetWidth / metrics.width;
-                let finalSize = Math.min(fSize * scaleFactor, 180); // 限制上限防溢出
-                if(finalSize < 45) finalSize = 45; // 限制下限防過小黏糊
-                memCtx.font = `900 ${finalSize}px ${fontSelect.value}`;
-            }
-
-            // 在離屏畫布中央繪製文字
-            memCtx.fillText(text, BASE_WIDTH / 2, BASE_HEIGHT / 2);
-
-            // 讀取像素數據
-            const imgData = memCtx.getImageData(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            const data = imgData.data;
-            const targets = [];
-
-            // 採樣步長（顆粒度調校：每隔 5 像素抽樣一次，確保顆粒清晰度，且不黏稠）
-            const step = 5; 
-            for (let y = 0; y < BASE_HEIGHT; y += step) {
-                for (let x = 0; x < BASE_WIDTH; x += step) {
-                    const idx = (y * BASE_WIDTH + x) * 4;
-                    if (data[idx] > 128) { // 如果像素是白的（有筆畫）
-                        targets.push({ x: x, y: y });
-                    }
-                }
-            }
-
-            // 洗牌打亂目標點，讓粒子隨機飛入，視覺效果更自然
-            for (let i = targets.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [targets[i], targets[j]] = [targets[j], targets[i]];
-            }
-
-            // 將採樣到的座標分派給粒子池
-            const chosenColor = textColorInput.value;
-            particles.forEach((p, i) => {
-                if (i < targets.length) {
-                    p.targetX = targets[i].x;
-                    p.targetY = targets[i].y;
-                    p.active = true;
-                    p.color = chosenColor;
-                } else {
-                    // 多餘的粒子，在背景隨機散開，形成自然的微塵襯底，絕不疊在一起形成糊塊
-                    p.active = false;
-                    p.targetX = Math.random() * BASE_WIDTH;
-                    p.targetY = Math.random() * BASE_HEIGHT;
-                }
-            });
-        }
-
-        function loadTextLine(index) {
-            if (textLines.length === 0) return;
-            
-            phase = "turbulent"; // 先進入1秒的漩渦擾動，讓動作更優雅
-            phaseTimer = 0;
-
-            const lineObj = textLines[index];
-            sampleTextMap(lineObj.text, lineObj.isTime);
-        }
-
-        function startCarousel() {
-            if (carouselTimer) clearInterval(carouselTimer);
-
-            // 讀取使用者輸入並建立播放清單
-            const rawLines = messageInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            textLines = rawLines.map(t => ({ text: t, isTime: false }));
-
-            // 如果勾選加入時間，智慧置入中文化時間
-            if (includeTimeCheck.checked) {
-                const timeStrings = getChineseDateTimeStrings();
-                textLines.push({ text: timeStrings[0], isTime: true }); // 日期
-                textLines.push({ text: timeStrings[1], isTime: true }); // 時間
-            }
-
+            speakerPulses = [];
+            textLines = messageInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             if (textLines.length === 0) return;
 
             currentLineIndex = 0;
-            loadTextLine(currentLineIndex);
-
-            const duration = parseInt(speedInput.value) || 1000;
-            carouselTimer = setInterval(() => {
-                const nextIndex = currentLineIndex + 1;
-
-                if (nextIndex >= textLines.length) {
-                    // 如果播完了最後一行
-                    if (isRecording) {
-                        stopRecordingAndDownload();
-                    } else {
-                        currentLineIndex = 0;
-                        loadTextLine(currentLineIndex);
-                    }
-                } else {
-                    currentLineIndex = nextIndex;
-                    loadTextLine(currentLineIndex);
-                }
-            }, duration + 2000); // 展示停留時間延伸
+            globalTimer = 0;
+            prepareLineTimeline(0);
         }
 
-        // 物理運動運算
-        function updateParticles(dt) {
-            phaseTimer += dt;
-            
-            if (phase === "turbulent" && phaseTimer > 800) {
-                phase = "gather"; // 0.8秒後收束凝聚
+        function prepareLineTimeline(lineIdx) {
+            tokenTimeline = [];
+            const tokens = parseTextToTokens(textLines[lineIdx]);
+            const interval = parseInt(speedInput.value) || 900;
+            const lineGap = parseFloat(lineGapInput.value) * 1000 || 3500;
+
+            let localTime = globalTimer;
+            tokens.forEach((tok) => {
+                tokenTimeline.push({ time: localTime, token: tok });
+                localTime += interval;
+            });
+            nextLineUnlockTime = localTime + lineGap;
+        }
+
+        function spawnToken(text) {
+            speakerPulses.push({ r: 80, opacity: 0.8 }); // 適應高清尺寸加大波紋
+
+            // 終點設定在高清畫布左上角外緣
+            const destOffsetMaxX = -(500 + Math.random() * 500); 
+            const destOffsetMaxY = -(500 + Math.random() * 500); 
+            const destRotate = (Math.random() * 16 - 8) * Math.PI / 180;
+
+            particles.push({
+                text: text,
+                rotateDeg: destRotate,
+                scale: 1.0, 
+                opacity: 0,
+                life: 16000, 
+                startColor: textColorInput.value,
+                birthTime: globalTimer,
+                destOffsetMaxX: destOffsetMaxX,
+                destOffsetMaxY: destOffsetMaxY
+            });
+        }
+
+        function interpolateColor(startHex, pct) {
+            const hexToRgb = hex => hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,(m,r,g,b) => '#' + r + r + g + g + b + b).substring(1).match(/.{2}/g).map(x => parseInt(x, 16));
+            const rgbToHex = (r, g, b) => "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+
+            let c1, c2, localPct;
+            const rgbStart = hexToRgb(startHex);
+            const rgbCyan = [0, 242, 254];
+            const rgbPurple = [155, 81, 224];
+            const rgbPink = [255, 0, 127];
+
+            if (pct < 0.35) {
+                c1 = rgbStart; c2 = rgbCyan; localPct = pct / 0.35;
+            } else if (pct < 0.70) {
+                c1 = rgbCyan; c2 = rgbPurple; localPct = (pct - 0.35) / 0.35;
+            } else {
+                c1 = rgbPurple; c2 = rgbPink; localPct = (pct - 0.70) / 0.30;
             }
 
-            particles.forEach((p) => {
-                if (phase === "turbulent") {
-                    // 漩渦擾動期：加入基於正弦波動的風力噪波，讓微粒在半空交織，防止突變黏死
-                    const noiseX = Math.sin(p.y * 0.01 + phaseTimer * 0.005) * 4;
-                    const noiseY = Math.cos(p.x * 0.01 + phaseTimer * 0.005) * 4;
-                    p.vx = p.vx * 0.88 + noiseX;
-                    p.vy = p.vy * 0.88 + noiseY;
-                } 
-                else if (p.active && phase === "gather") {
-                    // 凝聚期：高精度的彈性接近物理運動（Easing）
-                    const dx = p.targetX - p.x;
-                    const dy = p.targetY - p.y;
-                    
-                    // 防禦重疊：如果距離目標極近，給予極微小的抖動，防止粒子完全疊死在同一像素上
-                    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
-                        p.vx = (Math.random() - 0.5) * 0.5;
-                        p.vy = (Math.random() - 0.5) * 0.5;
-                    } else {
-                        p.vx = p.vx * 0.82 + dx * 0.07;
-                        p.vy = p.vy * 0.82 + dy * 0.07;
-                    }
-                } 
-                else {
-                    // 手動爆散或非活躍粒子：阻尼漂流模式
-                    p.vx *= 0.95;
-                    p.vy *= 0.95;
-                }
-
-                p.x += p.vx;
-                p.y += p.vy;
-
-                // 邊界防禦
-                if (p.x < 0) p.x = 0;
-                if (p.x > BASE_WIDTH) p.x = BASE_WIDTH;
-                if (p.y < 0) p.y = 0;
-                if (p.y > BASE_HEIGHT) p.y = BASE_HEIGHT;
-            });
+            const r = Math.round(c1[0] + (c2[0] - c1[0]) * localPct);
+            const g = Math.round(c1[1] + (c2[1] - c1[1]) * localPct);
+            const b = Math.round(c1[2] + (c2[2] - c1[2]) * localPct);
+            return rgbToHex(r, g, b);
         }
 
         let lastTime = performance.now();
-        function animate(now) {
+        function loop(now) {
             const dt = now - lastTime;
             lastTime = now;
 
-            updateParticles(dt);
+            // 右下角喇叭出生錨定點
+            const spX = BASE_WIDTH - 150;
+            const spY = BASE_HEIGHT - 150;
 
-            // 清除畫布（純黑）
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            if (textLines.length > 0) {
+                globalTimer += dt;
 
-            // 繪製粒子
-            particles.forEach((p) => {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.alpha;
-                ctx.fillRect(p.x, p.y, p.size, p.size); // 使用正方形微粒提升邊緣銳利度，拒絕圓形邊緣發糊
-            });
-            ctx.globalAlpha = 1.0;
+                while (tokenTimeline.length > 0 && globalTimer >= tokenTimeline[0].time) {
+                    const node = tokenTimeline.shift();
+                    spawnToken(node.token);
+                }
 
-            requestAnimationFrame(animate);
-        }
-
-        // 觸碰螢幕手動爆散打散
-        stageContainer.addEventListener('click', (e) => {
-            if (e.target !== canvas && e.target !== stageContainer) return;
-            
-            // 如果點擊空白處且非錄影中，切換UI顯示
-            if (!isRecording && e.target === stageContainer) {
-                document.body.classList.toggle('hide-ui');
-                return;
+                if (globalTimer >= nextLineUnlockTime) {
+                    const nextIndex = (currentLineIndex + 1) % textLines.length;
+                    
+                    if (isRecording && nextIndex === recordStartCycleIndex) {
+                        stopRecordingAndDownload();
+                    } else {
+                        currentLineIndex = nextIndex;
+                        prepareLineTimeline(currentLineIndex);
+                    }
+                }
             }
 
-            phase = "explode";
-            particles.forEach((p) => {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 15 + Math.random() * 25;
-                p.vx = Math.cos(angle) * speed;
-                p.vy = Math.sin(angle) * speed;
+            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+            // 1. 繪製右下角喇叭波紋
+            speakerPulses.forEach((p, idx) => {
+                p.r += dt * 0.15;
+                p.opacity -= dt * 0.001;
+                if (p.opacity <= 0) {
+                    speakerPulses.splice(idx, 1);
+                    return;
+                }
+                ctx.beginPath();
+                ctx.arc(spX, spY, p.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity * 0.6})`;
+                ctx.lineWidth = 4;
+                ctx.stroke();
             });
 
-            // 2.5秒後自動重新啟動輪播
-            setTimeout(() => {
-                if (phase === "explode") startCarousel();
-            }, 2500);
-        });
+            // 2. 繪製喇叭主體
+            ctx.save();
+            ctx.translate(spX, spY);
+            ctx.rotate(Math.PI / 4);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, 75, 0, Math.PI * 2); 
+            const grad = ctx.createLinearGradient(-50, -50, 50, 50);
+            grad.addColorStop(0, '#7b2cbf');
+            grad.addColorStop(1, '#ff2a6d');
+            ctx.fillStyle = grad;
+            ctx.shadowBlur = 35;
+            ctx.shadowColor = 'rgba(255, 42, 109, 0.5)';
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '56px sans-serif'; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('📢', 0, 0);
+            ctx.restore();
 
-        uiBtn.addEventListener('click', () => {
+            // 3. 繪製超高清漫步大字
+            particles.forEach((p, idx) => {
+                const age = globalTimer - p.birthTime;
+                if (age >= p.life) {
+                    particles.splice(idx, 1);
+                    return;
+                }
+
+                const pct = age / p.life;
+                const smoothStep = 1 - Math.pow(1 - pct, 5); 
+                
+                const curX = spX + (p.destOffsetMaxX - spX) * smoothStep;
+                const curY = spY + (p.destOffsetMaxY - spY) * smoothStep;
+                
+                // 最終字體放大倍率調高至 10.5 倍，極具視覺張力
+                p.scale = 1.0 + (10.5 - 1.0) * pct;
+
+                if (pct < 0.10) {
+                    p.opacity = pct / 0.10;
+                } else if (pct > 0.82) {
+                    p.opacity = 1 - (pct - 0.82) / 0.18; 
+                } else {
+                    p.opacity = 0.95;
+                }
+
+                const curColor = interpolateColor(p.startColor, pct);
+
+                ctx.save();
+                ctx.translate(curX, curY);
+                ctx.rotate(p.rotateDeg * pct);
+                ctx.scale(p.scale, p.scale);
+                
+                // 【基礎清晰度加強】：基礎字體直接使用 64px 的極粗黑體，確保縮放時邊緣不發散
+                ctx.font = '900 64px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.shadowBlur = 45; 
+                ctx.shadowColor = curColor;
+                ctx.fillStyle = curColor;
+                ctx.globalAlpha = p.opacity;
+                
+                ctx.fillText(p.text, 0, 0);
+                ctx.restore();
+            });
+
+            requestAnimationFrame(loop);
+        }
+
+        function toggleUI() {
             document.body.classList.toggle('hide-ui');
+        }
+        stageContainer.addEventListener('click', (e) => {
+            if(e.target === stageContainer || e.target === canvas) toggleUI();
         });
+        uiBtn.addEventListener('click', toggleUI);
 
-        playBtn.addEventListener('click', startCarousel);
-
-        // 智慧傳送網址功能
         shareBtn.addEventListener('click', () => {
             const config = {
                 text: messageInput.value,
                 color: textColorInput.value,
-                font: fontSelect.selectedIndex,
                 speed: speedInput.value,
-                time: includeTimeCheck.checked ? 1 : 0
+                gap: lineGapInput.value
             };
-            const paramStr = encodeURIComponent(JSON.stringify(config));
-            const shareUrl = `${window.location.origin}${window.location.pathname}?data=${paramStr}`;
+            const base64Data = btoa(encodeURIComponent(JSON.stringify(config)));
+            const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 收件者純淨版網址已成功複製到您的剪貼簿！可以直接傳給 LINE 朋友囉！');
+                alert('🚀 高清分享連結已複製！');
             }).catch(() => {
-                alert(`由於瀏覽器安全限制，請手動全選複製以下網址：\n\n${shareUrl}`);
+                alert(`請手動複製連結：\n${shareUrl}`);
             });
         });
 
-        // 讀取網址引導參數
         function parseUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
-            const dataParam = urlParams.get('data');
-            if (dataParam) {
+            const encodedData = urlParams.get('msg');
+            if (encodedData) {
                 try {
-                    const cfg = JSON.parse(decodeURIComponent(dataParam));
-                    messageInput.value = cfg.text;
-                    textColorInput.value = cfg.color;
-                    fontSelect.selectedIndex = cfg.font || 0;
-                    speedInput.value = cfg.speed;
-                    includeTimeCheck.checked = cfg.time === 1;
-                    
-                    // 收件者視角：一律自動隱藏控制面板，給予最純淨的動畫體驗
+                    const decodedConfig = JSON.parse(decodeURIComponent(atob(encodedData)));
+                    messageInput.value = decodedConfig.text;
+                    textColorInput.value = decodedConfig.color;
+                    speedInput.value = decodedConfig.speed;
+                    lineGapInput.value = decodedConfig.gap;
                     document.body.classList.add('hide-ui');
                 } catch (e) {
-                    console.error("網址解析有誤", e);
+                    console.error("網址參數解析失敗", e);
                 }
             }
         }
 
-        // 錄影核心控制模組
         recordBtn.addEventListener('click', () => {
             if (isRecording) return;
-
-            // 原生抓取 Canvas 原始高畫質畫面串流 (30 FPS)
-            const stream = canvas.captureStream(30);
             
-            let codecOption = 'video/webm;codecs=vp9';
-            if (!MediaRecorder.isTypeSupported(codecOption)) {
-                codecOption = 'video/webm;codecs=vp8';
+            // 抓取畫布最底層物理流
+            const stream = canvas.captureStream(30); 
+            
+            let selectedMimeType = 'video/webm;codecs=vp9';
+            if (!MediaRecorder.isTypeSupported(selectedMimeType)) {
+                selectedMimeType = 'video/webm;codecs=vp8';
             }
 
-            // 強制灌入 12 Mbps 的超高位元率，保證每一個粒子的邊緣在錄製壓縮時絕對不發糊！
-            const recorderOptions = {
-                mimeType: codecOption,
-                videoBitsPerSecond: 12000000 
+            // 【技術修正點 2】：強制灌入 15 Mbps (15000000) 的大寬高高位元率壓縮限制
+            // 逼迫手機在字體一邊移動、一邊變大時，絕對不准偷工減料把邊緣變模糊！
+            const recorderOptions = { 
+                mimeType: selectedMimeType,
+                videoBitsPerSecond: 15000000 
             };
 
             try {
                 mediaRecorder = new MediaRecorder(stream, recorderOptions);
             } catch(e) {
-                mediaRecorder = new MediaRecorder(stream);
+                try {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType, videoBitsPerSecond: 8000000 });
+                } catch(err) {
+                    mediaRecorder = new MediaRecorder(stream);
+                }
             }
 
             recordedChunks = [];
@@ -631,8 +545,8 @@
             document.body.classList.add('hide-ui');
             recordingBadge.style.display = 'flex';
             
-            // 從頭重跑一輪
-            startCarousel();
+            compileTimeline();
+            recordStartCycleIndex = 0; 
 
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data && e.data.size > 0) recordedChunks.push(e.data);
@@ -644,13 +558,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `粒子大字報_${Date.now()}.webm`;
+                a.download = `UHD_Space_Drift_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 高畫質無損影片錄製完成！已修正字體空間間距，保證清晰不黏膠！');
+                alert('🎉 2K 高清位元率影片錄製完成！字體從右下角漫步放大至左上角，全程邊緣完美銳利、不發糊！');
             };
 
             mediaRecorder.start();
@@ -659,16 +573,14 @@
         function stopRecordingAndDownload() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
-                if (carouselTimer) clearInterval(carouselTimer);
             }
         }
 
-        // 啟動工作流
+        playBtn.addEventListener('click', compileTimeline);
         parseUrlParams();
         initCanvasSize();
-        initParticlePool();
-        startCarousel();
-        requestAnimationFrame(animate);
+        compileTimeline();
+        requestAnimationFrame(loop);
     </script>
 </body>
 </html>
