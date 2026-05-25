@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 錄影字體不變形版</title>
+    <title>訊息傳遞 APP - 震撼巨字不發糊版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -31,7 +31,7 @@
             cursor: pointer;
         }
 
-        /* 讓畫布在網頁上滿版自適應，底層保持高清獨立解析度 */
+        /* 滿版自適應畫布 */
         canvas {
             display: block;
             width: 100%;
@@ -56,7 +56,7 @@
             backdrop-filter: blur(4px);
         }
 
-        /* 下方多功能控制面板 */
+        /* 下方控制面板 */
         #control-panel {
             background-color: #0b0b0f;
             padding: 18px;
@@ -69,7 +69,6 @@
             transform: translateY(0);
         }
 
-        /* 隱藏 UI 狀態 */
         body.hide-ui #control-panel {
             transform: translateY(100%);
             position: absolute;
@@ -169,7 +168,6 @@
 
         button:active { transform: scale(0.97); opacity: 0.9; }
 
-        /* 正在錄影指示燈 */
         #recording-badge {
             position: absolute;
             top: 20px;
@@ -197,19 +195,19 @@
 </head>
 <body>
 
-    <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
+    <div id="stage-container">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 高清向量不變形錄影中...</div>
+        <div id="recording-badge">🔴 超高畫質巨字錄影中...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">巨型霓虹字體
-漫步悠閒滑行
-文字絕對清晰
-絕不縮水成方形</textarea>
+            <textarea id="message-input" placeholder="請輸入訊息...">巨幕震撼字體
+超級特大加粗
+邊緣平滑銳利
+效果所見所得</textarea>
         </div>
 
         <div class="settings-row">
@@ -218,7 +216,7 @@
                 <input type="color" id="text-color" value="#00ffcc">
             </div>
             <div class="setting-item">
-                <label for="speed-input">出字慢速(ms)：</label>
+                <label for="speed-input">出字速度(ms)：</label>
                 <input type="number" id="speed-input" value="900" min="100" max="3000" step="50" style="width: 75px;">
             </div>
             <div class="setting-item">
@@ -262,7 +260,7 @@
         let mediaRecorder = null;
         let recordedChunks = [];
 
-        // 鎖定高清比例：1200 x 2160
+        // 高清畫布物理尺寸
         const BASE_WIDTH = 1200;
         const BASE_HEIGHT = 2160;
 
@@ -309,9 +307,10 @@
         function spawnToken(text) {
             speakerPulses.push({ r: 60, opacity: 0.8 });
 
-            const destOffsetMaxX = -(400 + Math.random() * 400); 
-            const destOffsetMaxY = -(400 + Math.random() * 400); 
-            const destRotate = (Math.random() * 16 - 8) * Math.PI / 180;
+            // 調整終點範圍，讓巨大字體完美滑行，不輕易出界
+            const destOffsetMaxX = -(450 + Math.random() * 450); 
+            const destOffsetMaxY = -(450 + Math.random() * 450); 
+            const destRotate = (Math.random() * 12 - 6) * Math.PI / 180;
 
             particles.push({
                 text: text,
@@ -378,7 +377,6 @@
                 }
             }
 
-            // 用純黑完整刷洗畫布，確保沒有殘留陰影
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
@@ -415,7 +413,7 @@
             ctx.fillText('📢', 0, 0);
             ctx.restore();
 
-            // 3. 漫步文字繪製
+            // 3. 漫步震撼大字繪製
             particles.forEach((p) => {
                 const age = globalTimer - p.birthTime;
                 if (age >= p.life) return;
@@ -426,7 +424,8 @@
                 const curX = spX + (p.destOffsetMaxX - spX) * smoothStep;
                 const curY = spY + (p.destOffsetMaxY - spY) * smoothStep;
                 
-                p.scale = 1.0 + (9.5 - 1.0) * pct;
+                // 基礎字體本身加大後，漫步放大倍率調整為 4.8 倍，即可達到遮天蔽日的巨幕效果
+                p.scale = 1.0 + (4.8 - 1.0) * pct;
 
                 if (pct < 0.10) {
                     p.opacity = pct / 0.10;
@@ -443,27 +442,25 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                // 設定安全的標準中文字型與大小
-                ctx.font = '900 52px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                // 【核心字級加大】：將基礎字級從 52px 直接拔高到 160px，確保大字底層向量網格絕對精細
+                ctx.font = '900 160px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.globalAlpha = p.opacity;
 
-                // 【核心修正：徹底禁用 ctx.shadowBlur】
-                // 採用多層向量疊加技術，模擬出更亮、且錄影絕對不會變成方形的霓虹效果：
-                
-                // 第一層：超寬底色外描邊（模擬最外圍的霓虹淡光暈）
+                // 霓虹發光描邊同步按比例加粗，維持大字視覺飽和度
+                // 第一層：淡光暈外描邊
                 ctx.strokeStyle = curColor;
-                ctx.lineWidth = 14;
+                ctx.lineWidth = 30;
                 ctx.lineJoin = "round";
                 ctx.strokeText(p.text, 0, 0);
 
-                // 第二層：核心飽和度描邊（讓霓虹燈管顏色更飽滿）
+                // 第二層：核心燈管描邊
                 ctx.strokeStyle = curColor;
-                ctx.lineWidth = 6;
+                ctx.lineWidth = 12;
                 ctx.strokeText(p.text, 0, 0);
 
-                // 第三層：頂層核心白色（實心填色，保證文字筆畫在任何手機錄影下都絕對清晰、字字分明）
+                // 第三層：核心純白筆畫
                 ctx.fillStyle = "#ffffff";
                 ctx.fillText(p.text, 0, 0);
 
@@ -492,7 +489,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 分享連結已複製！');
+                alert('🚀 巨字版分享連結已複製！');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -526,7 +523,7 @@
 
             const recorderOptions = { 
                 mimeType: selectedMimeType,
-                videoBitsPerSecond: 12000000 // 保持 12Mbps 高碼率
+                videoBitsPerSecond: 15000000 // 提升至 15Mbps 超高清頻寬
             };
 
             try {
@@ -554,13 +551,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `純淨不變形錄影_${Date.now()}.webm`;
+                a.download = `巨幕超大字報_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片錄製成功！已繞過行動裝置硬體解碼 Bug，文字邊緣筆畫完美重現，絕不變成方形！');
+                alert('🎉 影片錄製成功！字體已全面加粗放大，且錄影畫質清晰、筆畫平滑銳利！');
             };
 
             mediaRecorder.start();
