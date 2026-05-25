@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 極致慢速漫步版</title>
+    <title>訊息傳遞 APP - 高清巨字慢速版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -197,17 +197,17 @@
 
     <div id="stage-container" title="點擊切換隱藏/顯示操作面板">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 所見即所得錄影中（太空緩慢漫步版）...</div>
+        <div id="recording-badge">🔴 高清巨字錄影中（太空緩慢漫步版）...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">巨型霓虹字體
-慢步悠閒滑行
-所見即所得錄製
-完美保留預視比例</textarea>
+            <textarea id="message-input" placeholder="請輸入訊息...">超清晰高清巨字
+太空慢速漫步
+完美保留比例
+所見即所得錄製</textarea>
         </div>
 
         <div class="settings-row">
@@ -260,9 +260,12 @@
         let mediaRecorder = null;
         let recordedChunks = [];
 
+        // 智慧型高清 Canvas 初始化，防止視網膜螢幕模糊
         function resizeCanvas() {
-            canvas.width = stageContainer.clientWidth * window.devicePixelRatio;
-            canvas.height = stageContainer.clientHeight * window.devicePixelRatio;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = stageContainer.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
         }
         window.addEventListener('resize', resizeCanvas);
 
@@ -302,19 +305,19 @@
         }
 
         function spawnToken(text) {
-            speakerPulses.push({ r: 32, opacity: 0.8 });
+            speakerPulses.push({ r: 35, opacity: 0.8 });
 
-            // 終點設定在顯示區左上角的外部
-            const destOffsetMaxX = -(180 + Math.random() * 220); // 飄到左邊界外 -180px 至 -400px
-            const destOffsetMaxY = -(180 + Math.random() * 220); // 飄到上邊界外 -180px 至 -400px
-            const destRotate = (Math.random() * 20 - 10) * Math.PI / 180;
+            // 終點設定在顯示區外部
+            const destOffsetMaxX = -(250 + Math.random() * 250); 
+            const destOffsetMaxY = -(250 + Math.random() * 250); 
+            const destRotate = (Math.random() * 16 - 8) * Math.PI / 180;
 
             particles.push({
                 text: text,
                 rotateDeg: destRotate,
-                scale: 0.6,
+                scale: 0.8, // 提高初始縮放比，讓字更紮實
                 opacity: 0,
-                life: 16000, // 【大幅放慢技術】：生命週期從 9.5秒 延長至 16秒，拉長物理位移時間
+                life: 16000, 
                 startColor: textColorInput.value,
                 birthTime: globalTimer,
                 destOffsetMaxX: destOffsetMaxX,
@@ -351,15 +354,17 @@
             const dt = now - lastTime;
             lastTime = now;
 
+            const dpr = window.devicePixelRatio || 1;
             const w = stageContainer.clientWidth;
             const h = stageContainer.clientHeight;
             
             const spX = w - 60;
             const spY = h - 60;
 
-            if (canvas.width !== w * window.devicePixelRatio || canvas.height !== h * window.devicePixelRatio) {
-                canvas.width = w * window.devicePixelRatio;
-                canvas.height = h * window.devicePixelRatio;
+            // 動態檢測高清尺寸同步
+            if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
             }
 
             if (textLines.length > 0) {
@@ -383,12 +388,12 @@
             }
 
             ctx.save();
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            ctx.scale(dpr, dpr); // 精準高清縮放核心
             ctx.clearRect(0, 0, w, h);
 
             // 1. 繪製喇叭波紋
             speakerPulses.forEach((p, idx) => {
-                p.r += dt * 0.05; // 波紋擴散也稍微放慢
+                p.r += dt * 0.05;
                 p.opacity -= dt * 0.001;
                 if (p.opacity <= 0) {
                     speakerPulses.splice(idx, 1);
@@ -401,7 +406,7 @@
                 ctx.stroke();
             });
 
-            // 2. 繪製小喇叭主體（保持順時針旋轉 45 度朝向左上方）
+            // 2. 繪製小喇叭主體
             ctx.save();
             ctx.translate(spX, spY);
             ctx.rotate(Math.PI / 4);
@@ -423,7 +428,7 @@
             ctx.fillText('📢', 0, 0);
             ctx.restore();
 
-            // 3. 繪製文字粒子
+            // 3. 繪製超高清文字粒子
             particles.forEach((p, idx) => {
                 const age = globalTimer - p.birthTime;
                 if (age >= p.life) {
@@ -432,21 +437,17 @@
                 }
 
                 const pct = age / p.life;
-                
-                // 【更平滑放慢的動態曲線】：使用五次阻尼曲線 (quintic)，讓文字中後段的滑行呈現極致細膩的「慢速微飄」
                 const smoothStep = 1 - Math.pow(1 - pct, 5); 
                 
                 const curX = spX + (p.destOffsetMaxX - spX) * smoothStep;
                 const curY = spY + (p.destOffsetMaxY - spY) * smoothStep;
                 
-                // 配合超長生命週期，縮放比率調整至極致巨型（最終達 6.5 倍）
-                p.scale = 0.6 + (6.5 - 0.6) * pct;
+                // 【核心修改：字再大一點】：將最終縮放係數上限從 6.5 大幅調高至 8.5
+                p.scale = 0.8 + (8.5 - 0.8) * pct;
 
-                // 延長淡入與淡出的過渡，視覺上更滑順
                 if (pct < 0.10) {
                     p.opacity = pct / 0.10;
                 } else if (pct > 0.82) {
-                    // 到達很外面的邊界才優雅地慢慢變透明
                     p.opacity = 1 - (pct - 0.82) / 0.18; 
                 } else {
                     p.opacity = 0.95;
@@ -459,11 +460,13 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                ctx.font = 'bold 38px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                // 【核心修改：基礎清晰度優化】：加大基礎像素字體，並使用極粗體 (900/bold)
+                ctx.font = '900 46px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                ctx.shadowBlur = 25; 
+                // 優化發光邊界，字體邊緣不鬆散
+                ctx.shadowBlur = 30; 
                 ctx.shadowColor = curColor;
                 ctx.fillStyle = curColor;
                 ctx.globalAlpha = p.opacity;
@@ -495,7 +498,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 分享連結已複製！');
+                alert('🚀 高清分享連結已複製！');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -553,13 +556,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Slow_Space_Drift_${Date.now()}.webm`;
+                a.download = `HD_Slow_Space_Drift_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片錄製成功！文字呈現如太空漫步般極致流暢、緩慢飄移的效果！');
+                alert('🎉 高清大字影片錄製成功！文字呈現如太空漫步般極致流暢、完美清晰！');
             };
 
             mediaRecorder.start();
