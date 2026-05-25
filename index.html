@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 喇叭動態擴大爆發版</title>
+    <title>訊息傳遞 APP - 巨型動感喇叭噴字版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -197,17 +197,17 @@
 
     <div id="stage-container">
         <div id="ui-tip">💡 點擊畫布任意處，可隱藏下方操作面板</div>
-        <div id="recording-badge">🔴 喇叭震撼收縮錄影中...</div>
+        <div id="recording-badge">🔴 巨型喇叭爆發錄影中...</div>
         <canvas id="mainCanvas"></canvas>
     </div>
 
     <div id="control-panel">
         <div class="input-group">
             <label for="message-input">多行訊息輸入：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">喇叭同步放大
+            <textarea id="message-input" placeholder="請輸入訊息...">喇叭全面加大
+震動超級明顯
 噴字動感節奏
-震撼巨幕效果
-邊緣平滑銳利</textarea>
+效果清晰銳利</textarea>
         </div>
 
         <div class="settings-row">
@@ -255,7 +255,7 @@
         let nextLineUnlockTime = 0;
 
         let speakerPulses = [];
-        let speakerScale = 1.0; // 喇叭的核心控制縮放值
+        let speakerScale = 1.0; 
         
         let isRecording = false;
         let recordStartCycleIndex = 0;
@@ -308,10 +308,10 @@
         }
 
         function spawnToken(text) {
-            speakerPulses.push({ r: 60, opacity: 0.8 });
+            speakerPulses.push({ r: 110, opacity: 0.8 });
             
-            // 【核心變更】：字飄出喇叭口時，喇叭口瞬間膨脹至 1.4 倍
-            speakerScale = 1.4;
+            // 【核心變更】：噴字瞬間，巨型喇叭口劇烈膨脹至 1.65 倍，動態效果極度明顯！
+            speakerScale = 1.65;
 
             const destOffsetMaxX = -(450 + Math.random() * 450); 
             const destOffsetMaxY = -(450 + Math.random() * 450); 
@@ -359,8 +359,9 @@
             const dt = now - lastTime;
             lastTime = now;
 
-            const spX = BASE_WIDTH - 120;
-            const spY = BASE_HEIGHT - 120;
+            // 【位置微調】：為了防止超大喇叭膨脹時切到螢幕邊緣，將中心點往內移至 200, 200 的安全區
+            const spX = BASE_WIDTH - 200;
+            const spY = BASE_HEIGHT - 200;
 
             if (textLines.length > 0) {
                 globalTimer += dt;
@@ -385,46 +386,48 @@
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-            // 【喇叭縮放彈性回彈】：讓膨脹的喇叭每一幀平滑回歸到原大小 1.0
-            speakerScale += (1.0 - speakerScale) * 0.12;
+            // 【彈性強烈回彈】：LERP 快回彈速度，製造更有彈性的重低音咚咚感
+            speakerScale += (1.0 - speakerScale) * 0.14;
 
-            // 1. 喇叭波紋
+            // 1. 喇叭音波外圈
             speakerPulses.forEach((p, idx) => {
-                p.r += dt * 0.12;
-                p.opacity -= dt * 0.001;
+                p.r += dt * 0.16;
+                p.opacity -= dt * 0.0012;
                 if (p.opacity <= 0) {
                     speakerPulses.splice(idx, 1);
                     return;
                 }
                 ctx.beginPath();
-                ctx.arc(spX, spY, p.r * speakerScale, 0, Math.PI * 2); // 波紋同步受到喇叭擴張影響
-                ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity * 0.6})`;
-                ctx.lineWidth = 3;
+                ctx.arc(spX, spY, p.r * (speakerScale * 0.8), 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 42, 109, ${p.opacity * 0.7})`;
+                ctx.lineWidth = 5;
                 ctx.stroke();
             });
 
-            // 2. 動態擴大喇叭主體
+            // 2. 【超級加大版】喇叭主體繪製
             ctx.save();
             ctx.translate(spX, spY);
-            ctx.scale(speakerScale, speakerScale); // 套用即時物理縮放值
+            ctx.scale(speakerScale, speakerScale); 
             ctx.rotate(Math.PI / 4);
             
+            // 基礎圓半徑直接加倍到 110 像素
             ctx.beginPath();
-            ctx.arc(0, 0, 60, 0, Math.PI * 2);
-            const grad = ctx.createLinearGradient(-40, -40, 40, 40);
+            ctx.arc(0, 0, 110, 0, Math.PI * 2);
+            const grad = ctx.createLinearGradient(-80, -80, 80, 80);
             grad.addColorStop(0, '#7b2cbf');
             grad.addColorStop(1, '#ff2a6d');
             ctx.fillStyle = grad;
             ctx.fill();
             
+            // 📢 符號也同步放大到 96px 大字型
             ctx.fillStyle = '#ffffff';
-            ctx.font = '48px sans-serif';
+            ctx.font = '96px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('📢', 0, 0);
             ctx.restore();
 
-            // 3. 漫步大字繪製
+            // 3. 漫步震撼大字繪製
             particles.forEach((p) => {
                 const age = globalTimer - p.birthTime;
                 if (age >= p.life) return;
@@ -457,7 +460,7 @@
                 ctx.textBaseline = 'middle';
                 ctx.globalAlpha = p.opacity;
 
-                // 霓虹向量描邊
+                // 霓虹向量雙層描邊
                 ctx.strokeStyle = curColor;
                 ctx.lineWidth = 30;
                 ctx.lineJoin = "round";
@@ -495,7 +498,7 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 分享連結已複製！');
+                alert('🚀 巨型喇叭版分享連結已複製！');
             }).catch(() => {
                 alert(`請手動複製連結：\n${shareUrl}`);
             });
@@ -557,13 +560,13 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `動感喇叭噴字_${Date.now()}.webm`;
+                a.download = `震撼巨型喇叭_${Date.now()}.webm`;
                 a.click();
                 
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片錄製成功！喇叭口會隨著出字規律跳動收縮，效果極具節奏感！');
+                alert('🎉 影片錄製成功！超大喇叭口的強力收縮動態非常顯眼，視覺衝擊力十足！');
             };
 
             mediaRecorder.start();
