@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訊息傳遞 APP - 高級劇院錄影與分享版</title>
+    <title>訊息傳遞 APP - 大字體劇院錄影與分享版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -37,7 +37,7 @@
             height: 100%;
         }
 
-        /* 浮動提示：提示使用者可以點擊全螢幕 */
+        /* 浮動提示 */
         #ui-tip {
             position: absolute;
             top: 20px;
@@ -67,7 +67,7 @@
             transform: translateY(0);
         }
 
-        /* 當進入隱藏 UI 狀態時 */
+        /* 隱藏 UI 狀態 */
         body.hide-ui #control-panel {
             transform: translateY(100%);
             position: absolute;
@@ -167,7 +167,7 @@
 
         button:active { transform: scale(0.97); opacity: 0.9; }
 
-        /* 正在錄影狀態的特殊閃爍指示燈 */
+        /* 正在錄影指示燈 */
         #recording-badge {
             position: absolute;
             top: 20px;
@@ -202,11 +202,11 @@
 
     <div id="control-panel">
         <div class="input-group">
-            <label for="message-input">多行訊息輸入（支援中英文智慧分詞）：</label>
-            <textarea id="message-input" placeholder="請輸入訊息...">Hello World
-這是一段 自動錄影測試
-體驗 高級極光色彩漸變
-點擊網址 即可直接觀看...</textarea>
+            <label for="message-input">多行訊息輸入（字體已大幅放大的震撼視覺版）：</label>
+            <textarea id="message-input" placeholder="請輸入訊息...">震撼的大字體
+視覺張力 完美提升
+色彩隨著 軌跡蛻變
+錄製與分享 全面啟動</textarea>
         </div>
 
         <div class="settings-row">
@@ -215,8 +215,8 @@
                 <input type="color" id="text-color" value="#00ffcc">
             </div>
             <div class="setting-item">
-                <label for="speed-input">字距間隔(ms)：</label>
-                <input type="number" id="speed-input" value="600" min="100" max="2000" step="50" style="width: 75px;">
+                <label for="speed-input">出字間隔(ms)：</label>
+                <input type="number" id="speed-input" value="650" min="100" max="2000" step="50" style="width: 75px;">
             </div>
             <div class="setting-item">
                 <label for="line-gap-input">行停頓(秒)：</label>
@@ -246,7 +246,6 @@
         const uiBtn = document.getElementById('ui-btn');
         const recordingBadge = document.getElementById('recording-badge');
 
-        // 動態物理粒子/文字管理
         let particles = [];
         let textLines = [];
         let currentLineIndex = 0;
@@ -254,29 +253,24 @@
         let globalTimer = 0;
         let nextLineUnlockTime = 0;
 
-        // 喇叭音波波紋狀態
         let speakerPulses = [];
         let speakerX = 0, speakerY = 0, speakerRadius = 32;
 
-        // 錄影相關變數
         let mediaRecorder = null;
         let recordedChunks = [];
         let isRecording = false;
         let recordStartCycleIndex = 0;
 
-        // 初始化 Canvas 尺寸
         function resizeCanvas() {
             canvas.width = stageContainer.clientWidth * window.devicePixelRatio;
             canvas.height = stageContainer.clientHeight * window.devicePixelRatio;
             ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
             
-            // 更新喇叭在畫面右側中央偏下的座標
             speakerX = stageContainer.clientWidth - 70;
             speakerY = stageContainer.clientHeight * 0.72;
         }
         window.addEventListener('resize', resizeCanvas);
 
-        // 智慧分詞：英文單字保留，中文拆單字，過濾空字元
         function parseTextToTokens(text) {
             const regex = /([A-Za-z0-9'-]+)|(.)/g;
             const tokens = [];
@@ -287,7 +281,6 @@
             return tokens;
         }
 
-        // 解析多行輸入並編排精準的時間軸線
         function compileTimeline() {
             particles = [];
             speakerPulses = [];
@@ -302,7 +295,7 @@
         function prepareLineTimeline(lineIdx) {
             tokenTimeline = [];
             const tokens = parseTextToTokens(textLines[lineIdx]);
-            const interval = parseInt(speedInput.value) || 600;
+            const interval = parseInt(speedInput.value) || 650;
             const lineGap = parseFloat(lineGapInput.value) * 1000 || 2500;
 
             let localTime = globalTimer;
@@ -313,13 +306,12 @@
             nextLineUnlockTime = localTime + lineGap;
         }
 
-        // 發射單個字元/單字粒子的物理參數
         function spawnToken(text) {
-            // 觸發喇叭擴散圈波紋
             speakerPulses.push({ r: speakerRadius, opacity: 0.8 });
 
-            const destX = -(stageContainer.clientWidth * (1.1 + Math.random() * 0.3));
-            const destY = -(stageContainer.clientHeight * (1.0 + Math.random() * 0.3));
+            // 計算更廣更深邃的極遠左上角路徑
+            const destX = -(stageContainer.clientWidth * (1.2 + Math.random() * 0.3));
+            const destY = -(stageContainer.clientHeight * (1.1 + Math.random() * 0.3));
             const destRotate = (Math.random() * 24 - 12) * Math.PI / 180;
 
             particles.push({
@@ -334,13 +326,12 @@
                 scale: 0.5,
                 opacity: 0,
                 progress: 0,
-                life: 7000, // 生命週期 7000 毫秒 (7秒)
+                life: 7200, // 生命週期 7.2 秒
                 startColor: textColorInput.value,
                 birthTime: globalTimer
             });
         }
 
-        // 色彩隨生命週期過渡計算（誕生色 -> 青藍 -> 紫 -> 粉紅）
         function interpolateColor(startHex, pct) {
             const hexToRgb = hex => hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,(m,r,g,b) => '#' + r + r + g + g + b + b).substring(1).match(/.{2}/g).map(x => parseInt(x, 16));
             const rgbToHex = (r, g, b) => "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
@@ -365,7 +356,6 @@
             return rgbToHex(r, g, b);
         }
 
-        // 核心渲染與物理物理時鐘 (60 FPS)
         let lastTime = performance.now();
         function loop(now) {
             const dt = now - lastTime;
@@ -374,17 +364,14 @@
             if (textLines.length > 0) {
                 globalTimer += dt;
 
-                // 檢查時間軸是否需要發射新字詞
                 while (tokenTimeline.length > 0 && globalTimer >= tokenTimeline[0].time) {
                     const node = tokenTimeline.shift();
                     spawnToken(node.token);
                 }
 
-                // 檢查是否進入下一行
                 if (globalTimer >= nextLineUnlockTime) {
                     const nextIndex = (currentLineIndex + 1) % textLines.length;
                     
-                    // 【自動錄影關鍵收尾哨點】：如果是在錄影狀態，且已經繞完一圈回到第一行，立刻截斷存檔！
                     if (isRecording && nextIndex === recordStartCycleIndex) {
                         stopRecordingAndDownload();
                     } else {
@@ -394,7 +381,6 @@
                 }
             }
 
-            // 清空畫布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 1. 繪製小喇叭波紋
@@ -431,7 +417,7 @@
             ctx.fillText('📢', speakerX, speakerY);
             ctx.restore();
 
-            // 3. 繪製與更新所有的飄流文字粒子
+            // 3. 繪製與更新大體積文字粒子
             particles.forEach((p, idx) => {
                 const age = globalTimer - p.birthTime;
                 if (age >= p.life) {
@@ -439,27 +425,23 @@
                     return;
                 }
 
-                const pct = age / p.life; // 總體生命進度 (0 -> 1)
-
-                // 使用 cubic-bezier (0.15, 0.4, 0.3, 1.0) 的外推平滑平移
-                // 模擬出漸快後超遠距離悠閒滑行
+                const pct = age / p.life;
                 const easeOut = 1 - Math.pow(1 - pct, 3); 
                 p.curX = p.x + p.moveX * easeOut;
                 p.curY = p.y + p.moveY * easeOut;
                 
-                // 尺寸從小 (0.5) 持續線性膨脹至 6.0 倍
-                p.scale = 0.5 + (6.0 - 0.5) * pct;
+                // 【核心優化：大字體縮放曲線】
+                // 從 0.5 倍 持續放大到 8.5 倍，達到震撼的大視覺衝擊力
+                p.scale = 0.5 + (8.5 - 0.5) * pct;
 
-                // 離開喇叭前 12% 快速顯現，最後 30% 生命週期緩慢淡出
                 if (pct < 0.12) {
                     p.opacity = pct / 0.12;
-                } else if (pct > 0.70) {
-                    p.opacity = 1 - (pct - 0.70) / 0.30;
+                } else if (pct > 0.68) {
+                    p.opacity = 1 - (pct - 0.68) / 0.32;
                 } else {
-                    p.opacity = 0.9;
+                    p.opacity = 0.95;
                 }
 
-                // 計算當前極光漸變色
                 const curColor = interpolateColor(p.startColor, pct);
 
                 ctx.save();
@@ -467,12 +449,13 @@
                 ctx.rotate(p.rotateDeg * pct);
                 ctx.scale(p.scale, p.scale);
                 
-                ctx.font = 'bold 14px "PingFang TC", "Microsoft JhengHei", sans-serif';
+                // 【核心優化：基礎字體大小從 14px 升級為 24px】
+                ctx.font = 'bold 24px "PingFang TC", "Microsoft JhengHei", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // 霓虹發光層
-                ctx.shadowBlur = 15;
+                // 更濃郁的霓虹發光感
+                ctx.shadowBlur = 22;
                 ctx.shadowColor = curColor;
                 ctx.fillStyle = curColor;
                 ctx.globalAlpha = p.opacity;
@@ -484,17 +467,14 @@
             requestAnimationFrame(loop);
         }
 
-        // 開關介面隱藏狀態
         function toggleUI() {
             document.body.classList.toggle('hide-ui');
         }
         stageContainer.addEventListener('click', (e) => {
-            // 防止點到指示燈也被觸發
             if(e.target === stageContainer || e.target === canvas) toggleUI();
         });
         uiBtn.addEventListener('click', toggleUI);
 
-        // 【URL 分享連結生成功能】
         shareBtn.addEventListener('click', () => {
             const config = {
                 text: messageInput.value,
@@ -502,18 +482,16 @@
                 speed: speedInput.value,
                 gap: lineGapInput.value
             };
-            // 序列化為 Base64 字串，防中文字元壞軌使用 base64url 安全編碼
             const base64Data = btoa(encodeURIComponent(JSON.stringify(config)));
             const shareUrl = `${window.location.origin}${window.location.pathname}?msg=${base64Data}`;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('🚀 分享連結已成功複製至剪貼簿！傳給朋友打開將直接進入全螢幕動態劇院模式。');
+                alert('🚀 分享連結已複製！大字體劇院效果會直接帶入接收者的螢幕中。');
             }).catch(() => {
-                alert(`請手動複製此連結：\n${shareUrl}`);
+                alert(`請手動複製連結：\n${shareUrl}`);
             });
         });
 
-        // 讀取網址 URL 狀態解析器
         function parseUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
             const encodedData = urlParams.get('msg');
@@ -524,8 +502,6 @@
                     textColorInput.value = decodedConfig.color;
                     speedInput.value = decodedConfig.speed;
                     lineGapInput.value = decodedConfig.gap;
-                    
-                    // 從連結點進來的，自動預設切換至「隱藏操作介面」的全螢幕播放觀賞模式
                     document.body.classList.add('hide-ui');
                 } catch (e) {
                     console.error("網址參數解析失敗", e);
@@ -533,12 +509,10 @@
             }
         }
 
-        // 【自動錄影存檔核心功能】
         recordBtn.addEventListener('click', () => {
             if (isRecording) return;
             
-            // 1. 檢查瀏覽器支援度
-            const stream = canvas.captureStream(30); // 精準錄製 Canvas 底層 30 FPS 純淨畫面
+            const stream = canvas.captureStream(30);
             const options = { mimeType: 'video/webm;codecs=vp9' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                 options.mimeType = 'video/webm;codecs=vp8';
@@ -547,18 +521,16 @@
             try {
                 mediaRecorder = new MediaRecorder(stream, options);
             } catch(e) {
-                alert('當前瀏覽器不支援 Canvas 錄影系統');
+                alert('瀏覽器不支援錄影系統');
                 return;
             }
 
             recordedChunks = [];
             isRecording = true;
             
-            // 2. 自動優化介面：進入純淨全螢幕隱藏狀態，拉起錄製紅標
             document.body.classList.add('hide-ui');
             recordingBadge.style.display = 'flex';
             
-            // 3. 設定檢查點：從目前第一行開始重播
             compileTimeline();
             recordStartCycleIndex = 0; 
 
@@ -570,20 +542,17 @@
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 
-                // 建立隱藏下載錨點下載自動命名影片
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `MessageApp_Video_${Date.now()}.webm`;
+                a.download = `BigText_Video_${Date.now()}.webm`;
                 a.click();
                 
-                // 4. 錄製完成還原 UI 面板
                 isRecording = false;
                 recordingBadge.style.display = 'none';
                 document.body.classList.remove('hide-ui');
-                alert('🎉 影片已完美捕捉並自動下載存檔完成！');
+                alert('🎉 大字體影片已完美捕捉並下載存檔！');
             };
 
-            // 啟動錄製器
             mediaRecorder.start();
         });
 
@@ -593,10 +562,7 @@
             }
         }
 
-        // 初始化啟動
         playBtn.addEventListener('click', compileTimeline);
-        
-        // 初始運行工作流
         parseUrlParams();
         resizeCanvas();
         compileTimeline();
